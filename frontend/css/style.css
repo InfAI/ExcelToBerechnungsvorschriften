@@ -1,0 +1,35 @@
+/* Custom Styles für die Anwendung */
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+}
+
+/* Variable-Links in Formeln */
+.variable-link {
+    cursor: pointer;
+    text-decoration: underline;
+    color: #0d6efd;
+}
+
+.variable-link:hover {
+    color: #0a58ca;
+}
+
+/* Abhängigkeitslisten */
+.dependency-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Code-Bereiche */
+code {
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.9em;
+}

@@ -1,0 +1,31 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Fundamental Principles
+- Treat me as an expert
+- Be accurate and thorough
+- Consider new technologies and contrarian ideas, not just the conventional wisdom
+- You may use high levels of speculation or prediction, just flag it for me
+- If your content policy is an issue, provide the closest acceptable response and explain the content policy issue afterward
+- Proceed like a senior developer.
+
+# Error Fixing
+- DO NOT JUMP TO CONCLUSIONS! Consider multiple possible causes before deciding.
+- Explain the problem in plain English if not stated otherwise
+- Make minimal necessary changes, changing as few lines of code as possible
+- in case of strange errors, ask the user to perform a Perplexity web search to find the latest up-to-date information
+
+# Comments
+- ALWAYS try to add more helpful and explanatory comments into our code
+- NEVER delete old comments - unless they are obviously wrong / obsolete
+- Include LOTS of explanatory comments in your code. ALWAYS write well-documented code.
+- Document all changes and their reasoning IN THE COMMENTS YOU WRITE
+- when writing comments, use clear and easy-to-understand language and write in short sentences.
+
+# General
+- Only create README.md and similar files when I ask you to do so.
+
+# Docker
+- use 'docker compose' instead of 'docker-compose'

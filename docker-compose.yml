@@ -1,0 +1,44 @@
+services:
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - middleware
+    restart: unless-stopped
+
+  middleware:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - FUSEKI_URL=http://fuseki:3030
+      - FUSEKI_DATASET=berechnungsvorschriften
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - RDF_NAMESPACE=${RDF_NAMESPACE}
+      - FUSEKI_USER=${FUSEKI_USER}
+      - FUSEKI_PASSWORD=${FUSEKI_PASSWORD}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - fuseki
+    restart: unless-stopped
+
+  fuseki:
+    image: stain/jena-fuseki:latest
+    ports:
+      - "3030:3030"
+    volumes:
+      - ./fuseki-data:/fuseki/databases
+      - ./fuseki-config.ttl:/fuseki/config.ttl:ro
+      - ./shiro.ini:/fuseki/shiro.ini:ro
+    environment:
+      - FUSEKI_DEFAULT=berechnungsvorschriften
+      - ADMIN_PASSWORD=${FUSEKI_PASSWORD}
+    user: "1000:1000"
+    restart: unless-stopped

@@ -1,0 +1,26 @@
+BEISPIEL-EINGABE:
+
+Tabellenidentifikator: Tabelle1
+Tabellenblatt: Sheet1
+Zellenidentifikator: A1
+Beschreibung: Monatliches Nettogehalt berechnen
+Formel: =B1/12
+
+GEWÜNSCHTES JSON-OUTPUT:
+
+{
+  "name": "monatliches Nettogehalt",
+  "formel": "Jahresnettogehalt / 12",
+  "variablen": [
+    {
+      "name": "Jahresnettogehalt",
+      "ist_primitive": true
+    }
+  ],
+  "metadaten": {
+    "kategorie": "Gehalt",
+    "symbol": "MNG",
+    "datentyp": "decimal",
+    "einheit": "EUR"
+  }
+}

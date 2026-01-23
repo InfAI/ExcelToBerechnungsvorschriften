@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alle Berechnungsvorschriften</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">Excel zu Berechnungsvorschriften</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Neue Berechnungsvorschrift</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="berechnungsvorschriften.html">Alle Berechnungsvorschriften</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Alle Berechnungsvorschriften</h1>
+            <a href="index.html" class="btn btn-primary">Neue Berechnungsvorschrift</a>
+        </div>
+
+        <!-- Suchfilter -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Suche nach Metadaten</h5>
+            </div>
+            <div class="card-body">
+                <form id="suchformular" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="suche-name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="suche-name">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="suche-kategorie" class="form-label">Kategorie</label>
+                        <input type="text" class="form-control" id="suche-kategorie">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="suche-symbol" class="form-label">Symbol</label>
+                        <input type="text" class="form-control" id="suche-symbol">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="suche-datentyp" class="form-label">Datentyp</label>
+                        <input type="text" class="form-control" id="suche-datentyp">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="suche-einheit" class="form-label">Einheit</label>
+                        <input type="text" class="form-control" id="suche-einheit">
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">Suchen</button>
+                        <button type="button" class="btn btn-secondary" onclick="resetSuche()">Zurücksetzen</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Berechnungsvorschriften-Liste -->
+        <div id="berechnungsvorschriften-container">
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Lädt...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/berechnungsvorschriften.js"></script>
+    <script>
+        // Beim Laden der Seite alle Berechnungsvorschriften laden
+        document.addEventListener('DOMContentLoaded', () => {
+            ladeUndZeigeBerechnungsvorschriften('berechnungsvorschriften-container');
+        });
+        
+        // Suchformular-Handler
+        document.getElementById('suchformular').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const filter = {
+                name: document.getElementById('suche-name').value || null,
+                kategorie: document.getElementById('suche-kategorie').value || null,
+                symbol: document.getElementById('suche-symbol').value || null,
+                datentyp: document.getElementById('suche-datentyp').value || null,
+                einheit: document.getElementById('suche-einheit').value || null
+            };
+            
+            const container = document.getElementById('berechnungsvorschriften-container');
+            
+            try {
+                const berechnungsvorschriften = await api.sucheBerechnungsvorschriften(filter);
+                
+                if (berechnungsvorschriften.length === 0) {
+                    container.innerHTML = '<div class="alert alert-info">Keine Berechnungsvorschriften gefunden.</div>';
+                    return;
+                }
+                
+                container.innerHTML = berechnungsvorschriften
+                    .map(bv => erstelleBerechnungsvorschriftCard(bv))
+                    .join('');
+                    
+            } catch (error) {
+                container.innerHTML = `<div class="alert alert-danger">Fehler bei Suche: ${error.message}</div>`;
+            }
+        });
+        
+        function resetSuche() {
+            document.getElementById('suchformular').reset();
+            ladeUndZeigeBerechnungsvorschriften('berechnungsvorschriften-container');
+        }
+    </script>
+</body>
+</html>

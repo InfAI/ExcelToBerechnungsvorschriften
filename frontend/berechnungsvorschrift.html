@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Berechnungsvorschrift Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">Excel zu Berechnungsvorschriften</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Neue Berechnungsvorschrift</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="berechnungsvorschriften.html">Alle Berechnungsvorschriften</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div id="loading-container" class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Lädt...</span>
+            </div>
+        </div>
+
+        <div id="content-container" class="d-none">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 id="bv-name">Berechnungsvorschrift</h1>
+                <div>
+                    <button class="btn btn-primary" onclick="bearbeiteBerechnungsvorschrift()">Bearbeiten</button>
+                    <button class="btn btn-danger" onclick="loescheBerechnungsvorschrift()">Löschen</button>
+                </div>
+            </div>
+
+            <!-- Hauptinformationen -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Informationen</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Formel:</strong> <span id="bv-formel"></span></p>
+                            <p><strong>Version:</strong> <span id="bv-version"></span></p>
+                            <p><strong>Erstellt am:</strong> <span id="bv-erstellt-am"></span></p>
+                            <p><strong>Geändert am:</strong> <span id="bv-geaendert-am"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Metadaten</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Kategorie:</strong> <span id="bv-kategorie"></span></li>
+                                <li><strong>Symbol:</strong> <span id="bv-symbol"></span></li>
+                                <li><strong>Datentyp:</strong> <span id="bv-datentyp"></span></li>
+                                <li><strong>Einheit:</strong> <span id="bv-einheit"></span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Variablen -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Variablen</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group" id="variablen-liste">
+                        <!-- Wird dynamisch gefüllt -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Abhängigkeitslisten -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Wird verwendet in</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group dependency-list" id="verwendet-in-liste">
+                                <!-- Wird dynamisch gefüllt -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Verwendet folgende Berechnungsvorschriften</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group dependency-list" id="verwendet-liste">
+                                <!-- Wird dynamisch gefüllt -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quelle-Information -->
+            <div class="card mb-4" id="quelle-card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quelle</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled" id="quelle-info">
+                        <!-- Wird dynamisch gefüllt -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bearbeiten-Modal -->
+    <div class="modal fade" id="bearbeiten-modal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Berechnungsvorschrift bearbeiten</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="bearbeiten-form">
+                        <div class="mb-3">
+                            <label for="edit-name" class="form-label">Name *</label>
+                            <input type="text" class="form-control" id="edit-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-formel" class="form-label">Formel (Pseudocode) *</label>
+                            <textarea class="form-control" id="edit-formel" rows="3" required></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="edit-kategorie" class="form-label">Kategorie *</label>
+                                <input type="text" class="form-control" id="edit-kategorie" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="edit-symbol" class="form-label">Symbol *</label>
+                                <input type="text" class="form-control" id="edit-symbol" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="edit-datentyp" class="form-label">Datentyp *</label>
+                                <input type="text" class="form-control" id="edit-datentyp" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="edit-einheit" class="form-label">Einheit *</label>
+                                <input type="text" class="form-control" id="edit-einheit" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="button" class="btn btn-primary" onclick="speichereAenderungen()">Speichern</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/berechnungsvorschriften.js"></script>
+    <script>
+        let aktuelleBerechnungsvorschrift = null;
+        
+        // URL-Parameter auslesen
+        const urlParams = new URLSearchParams(window.location.search);
+        const bvId = urlParams.get('id');
+        
+        if (!bvId) {
+            document.getElementById('loading-container').innerHTML = 
+                '<div class="alert alert-danger">Keine ID angegeben</div>';
+        } else {
+            ladeBerechnungsvorschrift(bvId);
+        }
+        
+        async function ladeBerechnungsvorschrift(id) {
+            try {
+                // Berechnungsvorschrift laden
+                aktuelleBerechnungsvorschrift = await api.ladeBerechnungsvorschrift(id);
+                
+                // Abhängigkeiten laden
+                const verwendetIn = await api.ladeVerwendetIn(id);
+                const verwendet = await api.ladeVerwendet(id);
+                
+                // UI aktualisieren
+                zeigeBerechnungsvorschrift(aktuelleBerechnungsvorschrift, verwendetIn, verwendet);
+                
+                document.getElementById('loading-container').classList.add('d-none');
+                document.getElementById('content-container').classList.remove('d-none');
+                
+            } catch (error) {
+                document.getElementById('loading-container').innerHTML = 
+                    `<div class="alert alert-danger">Fehler beim Laden: ${error.message}</div>`;
+            }
+        }
+        
+        function zeigeBerechnungsvorschrift(bv, verwendetIn, verwendet) {
+            // Grunddaten
+            document.getElementById('bv-name').textContent = bv.name;
+            document.getElementById('bv-formel').innerHTML = formatiereFormelMitVariablen(bv.formel, bv.variablen || [], bv.id);
+            document.getElementById('bv-version').textContent = bv.version;
+            document.getElementById('bv-erstellt-am').textContent = bv.erstellt_am ? new Date(bv.erstellt_am).toLocaleString('de-DE') : '-';
+            document.getElementById('bv-geaendert-am').textContent = bv.geaendert_am ? new Date(bv.geaendert_am).toLocaleString('de-DE') : '-';
+            
+            // Metadaten
+            document.getElementById('bv-kategorie').textContent = bv.metadaten.kategorie;
+            document.getElementById('bv-symbol').textContent = bv.metadaten.symbol;
+            document.getElementById('bv-datentyp').textContent = bv.metadaten.datentyp;
+            document.getElementById('bv-einheit').textContent = bv.metadaten.einheit;
+            
+            // Variablen
+            const variablenListe = document.getElementById('variablen-liste');
+            if (bv.variablen && bv.variablen.length > 0) {
+                variablenListe.innerHTML = bv.variablen.map(variable => {
+                    if (variable.ist_primitive) {
+                        return `<li class="list-group-item">${variable.name} <span class="badge bg-secondary">primitiv</span></li>`;
+                    } else {
+                        return `<li class="list-group-item">
+                            ${variable.name} 
+                            <a href="berechnungsvorschrift.html?id=${variable.referenz_berechnungsvorschrift_id}" class="badge bg-primary">
+                                → ${variable.referenz_berechnungsvorschrift_id.substring(0, 8)}...
+                            </a>
+                        </li>`;
+                    }
+                }).join('');
+            } else {
+                variablenListe.innerHTML = '<li class="list-group-item">Keine Variablen</li>';
+            }
+            
+            // Verwendet in
+            const verwendetInListe = document.getElementById('verwendet-in-liste');
+            if (verwendetIn && verwendetIn.length > 0) {
+                verwendetInListe.innerHTML = verwendetIn.map(ref => 
+                    `<li class="list-group-item">
+                        <a href="berechnungsvorschrift.html?id=${ref.id}">${ref.name}</a>
+                        <span class="badge bg-info">${ref.metadaten.symbol}</span>
+                    </li>`
+                ).join('');
+            } else {
+                verwendetInListe.innerHTML = '<li class="list-group-item">Keine Referenzen</li>';
+            }
+            
+            // Verwendet
+            const verwendetListe = document.getElementById('verwendet-liste');
+            if (verwendet && verwendet.length > 0) {
+                verwendetListe.innerHTML = verwendet.map(ref => 
+                    `<li class="list-group-item">
+                        <a href="berechnungsvorschrift.html?id=${ref.id}">${ref.name}</a>
+                        <span class="badge bg-info">${ref.metadaten.symbol}</span>
+                    </li>`
+                ).join('');
+            } else {
+                verwendetListe.innerHTML = '<li class="list-group-item">Keine Referenzen</li>';
+            }
+            
+            // Quelle
+            const quelleInfo = document.getElementById('quelle-info');
+            const quelleCard = document.getElementById('quelle-card');
+            if (bv.quelle && (bv.quelle.tabellenidentifikator || bv.quelle.beschreibung)) {
+                quelleCard.classList.remove('d-none');
+                let quelleHtml = '';
+                if (bv.quelle.tabellenidentifikator) {
+                    quelleHtml += `<li><strong>Tabellenidentifikator:</strong> ${bv.quelle.tabellenidentifikator}</li>`;
+                }
+                if (bv.quelle.tabellenblatt) {
+                    quelleHtml += `<li><strong>Tabellenblatt:</strong> ${bv.quelle.tabellenblatt}</li>`;
+                }
+                if (bv.quelle.zellenidentifikator) {
+                    quelleHtml += `<li><strong>Zellenidentifikator:</strong> ${bv.quelle.zellenidentifikator}</li>`;
+                }
+                if (bv.quelle.beschreibung) {
+                    quelleHtml += `<li><strong>Beschreibung:</strong> ${bv.quelle.beschreibung}</li>`;
+                }
+                quelleInfo.innerHTML = quelleHtml;
+            } else {
+                quelleCard.classList.add('d-none');
+            }
+        }
+        
+        function bearbeiteBerechnungsvorschrift() {
+            if (!aktuelleBerechnungsvorschrift) return;
+            
+            // Formular füllen
+            document.getElementById('edit-name').value = aktuelleBerechnungsvorschrift.name;
+            document.getElementById('edit-formel').value = aktuelleBerechnungsvorschrift.formel;
+            document.getElementById('edit-kategorie').value = aktuelleBerechnungsvorschrift.metadaten.kategorie;
+            document.getElementById('edit-symbol').value = aktuelleBerechnungsvorschrift.metadaten.symbol;
+            document.getElementById('edit-datentyp').value = aktuelleBerechnungsvorschrift.metadaten.datentyp;
+            document.getElementById('edit-einheit').value = aktuelleBerechnungsvorschrift.metadaten.einheit;
+            
+            // Modal anzeigen
+            const modal = new bootstrap.Modal(document.getElementById('bearbeiten-modal'));
+            modal.show();
+        }
+        
+        async function speichereAenderungen() {
+            if (!aktuelleBerechnungsvorschrift) return;
+            
+            const aktualisierteBv = {
+                ...aktuelleBerechnungsvorschrift,
+                name: document.getElementById('edit-name').value,
+                formel: document.getElementById('edit-formel').value,
+                metadaten: {
+                    kategorie: document.getElementById('edit-kategorie').value,
+                    symbol: document.getElementById('edit-symbol').value,
+                    datentyp: document.getElementById('edit-datentyp').value,
+                    einheit: document.getElementById('edit-einheit').value
+                }
+            };
+            
+            try {
+                await api.aktualisiereBerechnungsvorschrift(aktuelleBerechnungsvorschrift.id, aktualisierteBv);
+                
+                // Modal schließen
+                const modal = bootstrap.Modal.getInstance(document.getElementById('bearbeiten-modal'));
+                modal.hide();
+                
+                // Seite neu laden
+                location.reload();
+            } catch (error) {
+                alert(`Fehler beim Speichern: ${error.message}`);
+            }
+        }
+        
+        async function loescheBerechnungsvorschrift() {
+            if (!aktuelleBerechnungsvorschrift) return;
+            
+            if (!confirm('Möchten Sie diese Berechnungsvorschrift wirklich löschen?')) {
+                return;
+            }
+            
+            try {
+                await api.loescheBerechnungsvorschrift(aktuelleBerechnungsvorschrift.id);
+                alert('Berechnungsvorschrift erfolgreich gelöscht!');
+                window.location.href = 'berechnungsvorschriften.html';
+            } catch (error) {
+                alert(`Fehler beim Löschen: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

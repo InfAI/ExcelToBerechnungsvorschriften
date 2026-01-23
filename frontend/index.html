@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel zu Berechnungsvorschriften</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">Excel zu Berechnungsvorschriften</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="index.html">Neue Berechnungsvorschrift</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="berechnungsvorschriften.html">Alle Berechnungsvorschriften</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h1 class="mb-4">Neue Berechnungsvorschrift erstellen</h1>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Zellendaten eingeben</h5>
+            </div>
+            <div class="card-body">
+                <form id="zelleneingabe-form">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="tabellenidentifikator" class="form-label">Tabellenidentifikator *</label>
+                            <input type="text" class="form-control" id="tabellenidentifikator" required
+                                   placeholder="z.B. Tabelle1">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="tabellenblatt" class="form-label">Tabellenblatt *</label>
+                            <input type="text" class="form-control" id="tabellenblatt" required
+                                   placeholder="z.B. Sheet1">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="zellenidentifikator" class="form-label">Zellenidentifikator *</label>
+                            <input type="text" class="form-control" id="zellenidentifikator" required
+                                   placeholder="z.B. A1, B5">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="beschreibung" class="form-label">Beschreibung *</label>
+                            <input type="text" class="form-control" id="beschreibung" required
+                                   placeholder="z.B. Gesamtkosten berechnen">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="formel" class="form-label">Excel-Formel *</label>
+                        <input type="text" class="form-control" id="formel" required
+                               placeholder="z.B. =A1+B1*C1">
+                        <div class="form-text">Die Formel wird automatisch in menschenlesbaren Pseudocode umgewandelt.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="submit-btn">
+                        <span class="spinner-border spinner-border-sm d-none" id="loading-spinner"></span>
+                        Berechnungsvorschrift generieren
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Ergebnis-Anzeige -->
+        <div id="ergebnis-container" class="mt-4 d-none">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Generierte Berechnungsvorschrift</h5>
+                </div>
+                <div class="card-body" id="ergebnis-content">
+                    <!-- Wird dynamisch gefüllt -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Fehler-Anzeige -->
+        <div id="fehler-container" class="mt-4 d-none">
+            <div class="alert alert-danger" role="alert" id="fehler-meldung">
+                <!-- Fehlermeldung -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/berechnungsvorschriften.js"></script>
+    <script>
+        // Formular-Handler
+        document.getElementById('zelleneingabe-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submit-btn');
+            const spinner = document.getElementById('loading-spinner');
+            const ergebnisContainer = document.getElementById('ergebnis-container');
+            const fehlerContainer = document.getElementById('fehler-container');
+            
+            // UI zurücksetzen
+            ergebnisContainer.classList.add('d-none');
+            fehlerContainer.classList.add('d-none');
+            submitBtn.disabled = true;
+            spinner.classList.remove('d-none');
+            
+            // Zellendaten sammeln
+            const zelleneingabe = {
+                tabellenidentifikator: document.getElementById('tabellenidentifikator').value,
+                tabellenblatt: document.getElementById('tabellenblatt').value,
+                zellenidentifikator: document.getElementById('zellenidentifikator').value,
+                beschreibung: document.getElementById('beschreibung').value,
+                formel: document.getElementById('formel').value
+            };
+            
+            try {
+                // Berechnungsvorschrift erstellen
+                const berechnungsvorschrift = await api.erstelleBerechnungsvorschrift(zelleneingabe);
+                
+                // Ergebnis anzeigen
+                zeigeBerechnungsvorschrift(berechnungsvorschrift);
+                ergebnisContainer.classList.remove('d-none');
+                
+                // Formular zurücksetzen
+                document.getElementById('zelleneingabe-form').reset();
+                
+            } catch (error) {
+                // Fehler anzeigen
+                document.getElementById('fehler-meldung').textContent = 
+                    `Fehler: ${error.message || 'Unbekannter Fehler'}`;
+                fehlerContainer.classList.remove('d-none');
+            } finally {
+                submitBtn.disabled = false;
+                spinner.classList.add('d-none');
+            }
+        });
+        
+        function zeigeBerechnungsvorschrift(bv) {
+            const container = document.getElementById('ergebnis-content');
+            
+            let html = `
+                <h6>${bv.name}</h6>
+                <p class="mb-2"><strong>Formel:</strong> <code>${bv.formel}</code></p>
+                <p class="mb-2"><strong>Version:</strong> ${bv.version}</p>
+                
+                <h6 class="mt-3">Metadaten</h6>
+                <ul class="list-unstyled">
+                    <li><strong>Kategorie:</strong> ${bv.metadaten.kategorie}</li>
+                    <li><strong>Symbol:</strong> ${bv.metadaten.symbol}</li>
+                    <li><strong>Datentyp:</strong> ${bv.metadaten.datentyp}</li>
+                    <li><strong>Einheit:</strong> ${bv.metadaten.einheit}</li>
+                </ul>
+            `;
+            
+            if (bv.variablen && bv.variablen.length > 0) {
+                html += '<h6 class="mt-3">Variablen</h6><ul class="list-unstyled">';
+                bv.variablen.forEach(variable => {
+                    html += `<li>${variable.name} ${variable.ist_primitive ? '(primitiv)' : '(→ ' + variable.referenz_berechnungsvorschrift_id + ')'}</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            // Mehrere Treffer anzeigen (falls vorhanden)
+            if (bv.mehrere_treffer && bv.mehrere_treffer.length > 0) {
+                html += '<div class="alert alert-warning mt-3"><h6>Mehrere Treffer gefunden</h6>';
+                bv.mehrere_treffer.forEach(treffer => {
+                    html += `<p><strong>Variable "${treffer.variablenname}":</strong> Bitte wählen Sie eine Option:</p><ul>`;
+                    treffer.optionen.forEach(opt => {
+                        html += `<li><a href="#" onclick="verlinkeVariable('${bv.id}', '${treffer.variablenname}', '${opt.id}')">${opt.name} (${opt.symbol})</a></li>`;
+                    });
+                    html += '</ul>';
+                });
+                html += '</div>';
+            }
+            
+            html += `<a href="berechnungsvorschrift.html?id=${bv.id}" class="btn btn-primary mt-3">Details anzeigen</a>`;
+            
+            container.innerHTML = html;
+        }
+        
+        async function verlinkeVariable(bvId, variablenname, referenzId) {
+            try {
+                await api.verlinkeVariable(bvId, variablenname, referenzId);
+                alert('Variable erfolgreich verlinkt!');
+                location.reload();
+            } catch (error) {
+                alert(`Fehler: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

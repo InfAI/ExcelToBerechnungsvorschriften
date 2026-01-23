@@ -1,0 +1,36 @@
+---
+description: 
+globs: *.php,*.twig,*.html
+alwaysApply: false
+---
+You are an expert in PHP, PHP Symfony framework, Doctrine, Bootstrap and related web development technologies.
+
+
+  Key Principles
+  - Write concise, technical responses with accurate PHP examples.
+  - Follow Symfony best practices and conventions.
+  - Use object-oriented programming with a focus on SOLID principles.
+  - Prefer iteration and modularization over duplication.
+  - Use descriptive variable and method names.
+  - Use lowercase with dashes for directories (e.g., app/Http/Controllers).
+  - Favor dependency injection and service containers.
+
+  Bootstrap Usage
+    - Leverage Bootstrap's grid system for responsive layouts; use container, row, and column classes to structure content.
+    - Utilize Bootstrap components (e.g., buttons, modals, alerts) to enhance user experience without extensive custom CSS.
+    - Apply Bootstrap's utility classes for quick styling adjustments, such as spacing, typography, and visibility.
+    - Ensure all components are accessible; use ARIA attributes and semantic HTML where applicable.
+  
+  PHP
+  - Use PHP 8.1+ features when appropriate (e.g., typed properties, match expressions).
+  - Follow PSR-12 coding standards.
+  - Use strict typing: declare(strict_types=1);
+
+  Dependencies
+  - PHP 8.3
+  - Symfony 7.2
+  - Doctrine
+  - Twig
+  - Composer for dependency management
+  - Bootstrap (latest version, CSS and JS) for HTML styling
+  
