@@ -370,6 +370,14 @@ services:
 15. Frontend: Versionsanzeige und Versionsverwaltung für Berechnungsvorschriften
 16. Frontend: Suchfunktion für Berechnungsvorschriften über Metadaten-Filter (Bootstrap Form Controls, Input Groups)
 
+## Offene Todos (für spätere Implementierung)
+
+1. LLM-Beispiel korrigieren und erweitern: Beispiel in `backend/prompts/berechnungsvorschrift_beispiel.txt` überprüfen und erweitern für bessere LLM-Ergebnisse
+2. Formel-Speicherung und Verlinkbarkeit prüfen: Überprüfung wie Formel gespeichert wird, um sicherzustellen dass Berechnungsvorschriften korrekt verlinkbar sind (betrifft Speicherung im RDF-Modell und Extraktion von Variablen für Verlinkungen). Jede variable im Pseudocode soll als Variable (middleware und fuseki) angelegt werden (mit allen metadaten) um eine spätere verlinkung zu ermöglichen. 
+3. Rückwärts-Verlinkung implementieren: Nach Anlegen neuer Berechnungsvorschrift prüfen, ob die dazugehörige Zelle (basierend auf Tabellenidentifikator, Tabellenblatt, Zellenidentifikator) in anderen bestehenden Berechnungsvorschriften verlinkt werden kann. Im frontend diese neu verlinkten anschließend anzeigen.
+4. Aufheben von Verlinkungen im pseudocode ermöglichen.
+5. Excel-Funktionen wie IFERROR ausschließen: Anpassung des LLM-Prompts (`backend/prompts/berechnungsvorschrift_prompt.txt`), um Funktionen wie IFERROR nicht in Pseudocode einfließen zu lassen
+
 ## Entscheidungen / Anforderungen
 
 ### Matching-Strategie für bestehende Berechnungsvorschriften
