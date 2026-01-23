@@ -36,9 +36,9 @@ services:
     volumes:
       - ./fuseki-data:/fuseki/databases
       - ./fuseki-config.ttl:/fuseki/config.ttl:ro
-      - ./shiro.ini:/fuseki/shiro.ini:ro
+      - ./fuseki-config/shiro.ini:/fuseki/shiro.ini.template:ro
     environment:
       - FUSEKI_DEFAULT=berechnungsvorschriften
       - ADMIN_PASSWORD=${FUSEKI_PASSWORD}
-    user: "1000:1000"
     restart: unless-stopped
+    #entrypoint: /bin/sh -c "if [ -f /fuseki/shiro.ini.template ]; then cp /fuseki/shiro.ini.template /fuseki/shiro.ini; fi && exec /docker-entrypoint.sh"

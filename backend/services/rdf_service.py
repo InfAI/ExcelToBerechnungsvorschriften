@@ -34,10 +34,11 @@ class RDFService:
         self.fuseki_user = os.getenv("FUSEKI_USER", "admin")
         self.fuseki_password = os.getenv("FUSEKI_PASSWORD", "")
         
+        # Debug: Prüfe ob Credentials geladen wurden (ohne Passwort zu loggen)
         if self.fuseki_user and self.fuseki_password:
-            logger.info(f"RDFService initialisiert - SPARQL: {self.sparql_endpoint}, Update: {self.update_endpoint}, User: {self.fuseki_user}")
+            logger.info(f"RDFService initialisiert - SPARQL: {self.sparql_endpoint}, Update: {self.update_endpoint}, User: {self.fuseki_user}, Password gesetzt: {'Ja' if self.fuseki_password else 'Nein'}")
         else:
-            logger.warning("RDFService initialisiert ohne Credentials - Authentifizierung wird möglicherweise fehlschlagen")
+            logger.warning(f"RDFService initialisiert ohne vollständige Credentials - User: '{self.fuseki_user}', Password gesetzt: {'Ja' if self.fuseki_password else 'Nein'}")
     
     def _get_sparql_client(self) -> SPARQLWrapper:
         """Erstellt einen SPARQL-Client mit Authentifizierung"""
@@ -46,6 +47,9 @@ class RDFService:
         # Credentials setzen, falls vorhanden
         if self.fuseki_user and self.fuseki_password:
             client.setCredentials(self.fuseki_user, self.fuseki_password)
+            logger.debug(f"SPARQL-Client erstellt mit Credentials für User: {self.fuseki_user}")
+        else:
+            logger.warning("SPARQL-Client erstellt OHNE Credentials - Authentifizierung wird fehlschlagen")
         return client
     
     def _get_update_client(self) -> SPARQLWrapper:
@@ -56,6 +60,9 @@ class RDFService:
         # Credentials setzen, falls vorhanden
         if self.fuseki_user and self.fuseki_password:
             client.setCredentials(self.fuseki_user, self.fuseki_password)
+            logger.debug(f"Update-Client erstellt mit Credentials für User: {self.fuseki_user}")
+        else:
+            logger.warning("Update-Client erstellt OHNE Credentials - Authentifizierung wird fehlschlagen")
         return client
     
     def speichere_berechnungsvorschrift(self, bv: Berechnungsvorschrift) -> None:
