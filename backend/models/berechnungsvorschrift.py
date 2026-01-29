@@ -9,11 +9,13 @@ from pydantic import BaseModel, Field
 class Variable(BaseModel):
     """
     Eine Variable in einer Berechnungsvorschrift.
-    Semantisch ist jede Variable ein Verweis auf eine Berechnungsvorschrift:
+    Jede Wertquelle, die in die Formel einfließt, wird als Variable abgebildet:
+    - Zellreferenz (z.B. A9) oder Tabellenspalte (z.B. MAJahr1[Arbeitsstunden/ Jahr]) → je eine Variable.
+    Semantisch ist jede Variable ein Verweis auf eine Berechnungsvorschrift bzw. Eingabe:
     - Mit referenz_berechnungsvorschrift_id: Verweis auf eine konkrete BV (ist_primitive=False).
-    - Ohne Referenz (ist_primitive=True): impliziter Verweis auf einen einfachen Wert/Eingabe;
+    - Ohne Referenz (ist_primitive=True): impliziter Verweis auf einen Wert/Eingabe (Zelle oder Spalte);
       keine eigene BV-Entität erforderlich.
-    Der name muss exakt mit dem Variablennamen im formel-String übereinstimmen (Verlinkbarkeit).
+    Der name muss exakt mit dem Variablennamen im formel-String übereinstimmen (Verlinkbarkeit, Auswertung).
     """
     
     name: str = Field(..., description="Gut lesbarer Variablenname; muss im formel-String vorkommen")
@@ -60,6 +62,11 @@ class Berechnungsvorschrift(BaseModel):
     version: int = Field(1, description="Versionsnummer")
     erstellt_am: Optional[datetime] = Field(None, description="Erstellungszeitpunkt")
     geaendert_am: Optional[datetime] = Field(None, description="Letzte Änderung")
+    # Optional: Auswertungstyp für spätere Berechnung mit echten Werten
+    operation: Optional[str] = Field(
+        None,
+        description="Auswertungstyp: 'ausdruck' (Default) = Formel als Ausdruck; 'index_lookup' = 2D-Tabellenlookup (Tabelle, Zeilenkey, Spaltenkey)"
+    )
     
     class Config:
         json_schema_extra = {

@@ -60,6 +60,10 @@ class JSONRDFConverter:
         graph.add((bv_uri, property_uri("hatFormel"), Literal(bv.formel)))
         graph.add((bv_uri, property_uri("hatVersion"), Literal(bv.version, datatype=XSD.integer)))
         
+        # Operation (optional) – bestimmt die Auswertungsregel bei Berechnung mit echten Werten
+        if getattr(bv, "operation", None):
+            graph.add((bv_uri, property_uri("hatOperation"), Literal(bv.operation)))
+        
         # Metadaten
         graph.add((bv_uri, property_uri("hatKategorie"), Literal(bv.metadaten.kategorie)))
         graph.add((bv_uri, property_uri("hatSymbol"), Literal(bv.metadaten.symbol)))
@@ -89,9 +93,10 @@ class JSONRDFConverter:
                 graph.add((bv_uri, property_uri("hatQuelleBeschreibung"), 
                           Literal(bv.quelle.beschreibung)))
         
-        # Variablen: Jede Variable wird als RDF-Objekt angelegt; Verlinkung über
-        # referenz_berechnungsvorschrift_id. Variablennamen im formel-String müssen zu
-        # Variable.name passen, damit die Anzeige/Verlinkung im Frontend funktioniert.
+        # Variablen: Jede Variable (Zellreferenz oder Tabellenspalte als Wertquelle) wird als
+        # RDF-Objekt angelegt; Verlinkung über referenziertBerechnungsvorschrift.
+        # Beliebig viele Variablen pro BV werden unterstützt. Der Name wird als Literal (hatName)
+        # gespeichert; die Variable-URI nutzt eine URI-sichere Codierung (rdf_helper.variable_uri).
         logger.debug(f"Füge {len(bv.variablen)} Variablen zum RDF-Graph hinzu...")
         var_type = URIRef(f"{namespace_iri}Variable")
         for var in bv.variablen:
@@ -136,6 +141,10 @@ class JSONRDFConverter:
         version_val = graph.value(bv_uri, property_uri("hatVersion"))
         version = int(version_val) if version_val else 1
         
+        # Operation (optional) – Auswertungstyp für Berechnung mit echten Werten
+        operation_val = graph.value(bv_uri, property_uri("hatOperation"))
+        operation = str(operation_val) if operation_val else None
+        
         # Metadaten extrahieren
         kategorie_val = graph.value(bv_uri, property_uri("hatKategorie"))
         symbol_val = graph.value(bv_uri, property_uri("hatSymbol"))
@@ -178,7 +187,7 @@ class JSONRDFConverter:
                 beschreibung=str(beschreibung_val) if beschreibung_val else None
             )
         
-        # Variablen extrahieren
+        # Variablen extrahieren (beliebig viele; jede Wertquelle = eine Variable)
         logger.debug(f"Extrahiere Variablen aus RDF-Graph für {bv_id}...")
         variablen = []
         hat_variable_uri = property_uri("hatVariable")
@@ -225,7 +234,8 @@ class JSONRDFConverter:
             quelle=quelle,
             version=version,
             erstellt_am=erstellt_am,
-            geaendert_am=geaendert_am
+            geaendert_am=geaendert_am,
+            operation=operation
         )
         logger.debug(f"RDF-zu-JSON Konvertierung abgeschlossen: ID={bv.id}, Name={bv.name}, Variablen={len(bv.variablen)}")
         return bv

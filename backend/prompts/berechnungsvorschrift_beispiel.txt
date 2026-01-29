@@ -2,6 +2,7 @@
 
 Format: BEISPIEL-EINGABE (Zelleneingabe) gefolgt von GEWÜNSCHTES JSON-OUTPUT.
 Im Output nur die Felder name, formel, variablen, metadaten. Kein referenz_berechnungsvorschrift_id; jede Variable mit ist_primitive: true.
+Jede Wertquelle (Zellreferenz oder Tabellenspalte, die Werte liefert) = eine Variable. formel nur mit Variablennamen aus variablen[] (exakt); keine werttragenden Begriffe ohne Variable.
 Variablennamen im formel-String müssen exakt mit variablen[].name übereinstimmen.
 
 ---
@@ -195,10 +196,10 @@ Erklärung: SUMME(B1:B12) wird zu expliziten Variablen Monatsumsatz_1 bis Monats
 
 ---
 
-BEISPIEL 6 – IFERROR + SUMIFS/COUNTIFS, Tabellenbezüge, eine Zellvariable (A9)
+BEISPIEL 6 – IFERROR + SUMIFS/COUNTIFS, Tabellenbezüge als Wertquellen = Variablen
 
-Formel nutzt IFERROR (nur Wert-Teil übernehmen), SUMIFS/COUNTIFS (bedingte Summe/Anzahl) und Tabellenbezüge (MAJahr1[Spalte]).
-Nur A9 ist eine Zellreferenz → genau eine Variable. Tabellenbezüge erzeugen keine Variablen.
+Formel nutzt IFERROR (nur Wert-Teil übernehmen), SUMIFS/COUNTIFS (bedingte Summe/Anzahl) und Tabellenbezüge.
+Jede Wertquelle wird zu einer Variable: (1) Zellreferenz A9 → "Ausbildungsstand"; (2) Tabellenspalte MAJahr1[Arbeitsstunden/ Jahr] (Summenbereich) → "Arbeitsstunden_pro_Jahr". Im formel nur diese Variablennamen verwenden.
 
 BEISPIEL-EINGABE:
 Tabellenidentifikator: MAJahr1
@@ -210,10 +211,14 @@ Formel: =IFERROR(SUMIFS(MAJahr1[Arbeitsstunden/ Jahr],MAJahr1[Ausbildungsstand],
 GEWÜNSCHTES JSON-OUTPUT:
 {
   "name": "Durchschnittliche Arbeitsstunden pro Jahr nach Ausbildungsstand",
-  "formel": "Summe Arbeitsstunden pro Jahr (gefiltert nach Ausbildungsstand) / Anzahl Einträge (gefiltert nach Ausbildungsstand)",
+  "formel": "Summe(Arbeitsstunden_pro_Jahr, gefiltert nach Ausbildungsstand) / Anzahl(gefiltert nach Ausbildungsstand)",
   "variablen": [
     {
       "name": "Ausbildungsstand",
+      "ist_primitive": true
+    },
+    {
+      "name": "Arbeitsstunden_pro_Jahr",
       "ist_primitive": true
     }
   ],
@@ -225,4 +230,48 @@ GEWÜNSCHTES JSON-OUTPUT:
   }
 }
 
-Erklärung: IFERROR wird weggelassen (nur der erste Parameter wird umgewandelt). A9 kommt zweimal vor (in SUMIFS und COUNTIFS) → trotzdem nur eine Variable "Ausbildungsstand". MAJahr1[Arbeitsstunden/ Jahr] und MAJahr1[Ausbildungsstand] sind Tabellenbezüge, keine Zellreferenzen → keine zusätzlichen Variablen. Der Variablenname "Ausbildungsstand" erscheint exakt so in formel.
+Erklärung: IFERROR wird weggelassen (nur der erste Parameter wird umgewandelt). A9 → Variable "Ausbildungsstand"; Tabellenspalte MAJahr1[Arbeitsstunden/ Jahr] (Summenbereich) → Variable "Arbeitsstunden_pro_Jahr". Beide Variablennamen erscheinen exakt so in formel. Kein werttragender Text ohne zugehörige Variable.
+
+---
+
+BEISPIEL 7 – INDEX + MATCH (Tabelle, Zeilen- und Spaltenkriterium)
+
+INDEX(Tabelle, Zeile, Spalte) liefert den Wert an Position (Zeile, Spalte). MATCH liefert Zeile/Spalte aus Kriterien.
+Wertquellen: (1) Tabelle Lohn[] → Variable "Lohn_Tabelle"; (2) Zelle H9 (Ausbildungsstand) → Variable "Ausbildungsstand"; (3) Zelle I4 (Spaltenkopf) → Variable "Spaltenkopf". Lohn[Ausbildungsstand] und Lohn[#headers] sind Lookup-Bereiche, keine zusätzlichen Variablen.
+Für Auswertung mit echten Werten: operation = "index_lookup" setzen; Variablen-Reihenfolge zwingend: [Tabelle, Zeilenkriterium, Spaltenkriterium].
+
+BEISPIEL-EINGABE:
+Tabellenidentifikator: Lohn
+Tabellenblatt: Sheet1
+Zellenidentifikator: J10
+Beschreibung: Lohnwert aus Tabelle Lohn für Ausbildungsstand und Spaltenkopf
+Formel: =INDEX(Lohn[],MATCH(H9,Lohn[Ausbildungsstand],0),MATCH(I4,Lohn[#headers]))
+
+GEWÜNSCHTES JSON-OUTPUT:
+{
+  "name": "Lohnwert aus Tabelle Lohn für Ausbildungsstand und Spaltenkopf",
+  "formel": "Wert aus Lohn_Tabelle an Zeile(Ausbildungsstand) und Spalte(Spaltenkopf)",
+  "variablen": [
+    {
+      "name": "Lohn_Tabelle",
+      "ist_primitive": true
+    },
+    {
+      "name": "Ausbildungsstand",
+      "ist_primitive": true
+    },
+    {
+      "name": "Spaltenkopf",
+      "ist_primitive": true
+    }
+  ],
+  "operation": "index_lookup",
+  "metadaten": {
+    "kategorie": "Personal",
+    "symbol": "LWT",
+    "datentyp": "decimal",
+    "einheit": "EUR"
+  }
+}
+
+Erklärung: Lohn[] (Tabelle) → Variable "Lohn_Tabelle"; H9 → "Ausbildungsstand"; I4 → "Spaltenkopf". Reihenfolge der Variablen ist fest: (1) Tabelle, (2) Zeilenkriterium (H9), (3) Spaltenkriterium (I4) – für Auswertung mit echten Werten. operation = "index_lookup" kennzeichnet diese BV für 2D-Tabellenlookup. Alle drei Variablennamen erscheinen exakt in formel.

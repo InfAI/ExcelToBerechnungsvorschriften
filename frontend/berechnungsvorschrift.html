@@ -53,6 +53,7 @@
                         <div class="col-md-6">
                             <p><strong>Formel:</strong> <span id="bv-formel"></span></p>
                             <p><strong>Version:</strong> <span id="bv-version"></span></p>
+                            <p id="bv-operation-row" class="d-none"><strong>Auswertungstyp:</strong> <span id="bv-operation"></span></p>
                             <p><strong>Erstellt am:</strong> <span id="bv-erstellt-am"></span></p>
                             <p><strong>Geändert am:</strong> <span id="bv-geaendert-am"></span></p>
                         </div>
@@ -214,6 +215,15 @@
             document.getElementById('bv-name').textContent = bv.name;
             document.getElementById('bv-formel').innerHTML = formatiereFormelMitVariablen(bv.formel, bv.variablen || [], bv.id);
             document.getElementById('bv-version').textContent = bv.version;
+            // Auswertungstyp (operation) nur anzeigen, wenn gesetzt (z.B. index_lookup)
+            const operationRow = document.getElementById('bv-operation-row');
+            if (bv.operation) {
+                const operationLabels = { 'index_lookup': 'Tabellenlookup (2D)', 'ausdruck': 'Ausdruck' };
+                document.getElementById('bv-operation').textContent = operationLabels[bv.operation] || bv.operation;
+                operationRow.classList.remove('d-none');
+            } else {
+                operationRow.classList.add('d-none');
+            }
             document.getElementById('bv-erstellt-am').textContent = bv.erstellt_am ? new Date(bv.erstellt_am).toLocaleString('de-DE') : '-';
             document.getElementById('bv-geaendert-am').textContent = bv.geaendert_am ? new Date(bv.geaendert_am).toLocaleString('de-DE') : '-';
             

@@ -116,7 +116,10 @@ class BerechnungsvorschriftMatcher:
         berechnungsvorschrift: Berechnungsvorschrift
     ) -> Tuple[Berechnungsvorschrift, List[Tuple[str, List[Berechnungsvorschrift]]]]:
         """
-        Verlinkt Variablen zu bestehenden Berechnungsvorschriften
+        Verlinkt Variablen zu bestehenden Berechnungsvorschriften.
+        Gilt für alle Variablen (aus Zellreferenz oder Tabellenspalte): Matching nach Name/Symbol
+        in Metadaten; Tabellenspalten-Variablen (z.B. Arbeitsstunden_pro_Jahr) können auf eine BV
+        verlinkt werden, die diese Spalte/Reihe repräsentiert.
         
         Args:
             berechnungsvorschrift: Berechnungsvorschrift mit unverlinkten Variablen

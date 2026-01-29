@@ -20,18 +20,21 @@ REGELN FÜR DEN PSEUDOCODE (formel):
    - Kein "=", keine Zellreferenzen (A1, B2, $A$1), keine Bereichsnotation (A1:A10).
    - Stattdessen: sprechende Variablennamen, die aus Beschreibung und Kontext abgeleitet werden.
 
-2. Jede Zellreferenz wird zu genau einer Variable:
-   - Gleiche Zelle (z.B. A9) in der Formel, auch wenn mehrfach vorkommend = immer derselbe Variablenname, nur eine Variable in variablen[].
-   - Variablennamen müssen im formel-String exakt so vorkommen wie in variablen[].name (weder mehr noch weniger Zeichen). Das ist zwingend für die spätere Verlinkbarkeit.
-   - Tabellenbezüge (z.B. Tabelle[Spalte] wie MAJahr1[Arbeitsstunden/ Jahr]) sind KEINE Zellreferenzen: Sie werden nur zur Formulierung des Pseudocodes genutzt (sprechende Begriffe), erzeugen keine zusätzlichen Variablen. Nur "normale" Zellreferenzen (A1, B9, $A$1) werden zu Variablen.
+2. Jede Wertquelle wird zu genau einer Variable (Zellreferenz UND Tabellenspalte):
+   - Zellreferenzen (A1, A9, $A$1): werden zu einer Variable mit sprechendem Namen (z.B. A9 → "Ausbildungsstand"). Gleiche Zelle mehrfach in der Formel = nur eine Variable in variablen[].
+   - Tabellenbezüge, die Werte liefern (z.B. Tabelle[Spalte] wie MAJahr1[Arbeitsstunden/ Jahr] als Summenbereich in SUMIFS): werden ebenfalls als eigene Variable modelliert – mit sprechendem Namen aus dem Spaltennamen (z.B. "Arbeitsstunden_pro_Jahr"). So ist jede Wertquelle im System befüllbar oder an eine BV verlinkbar.
+   - Im formel-String dürfen nur Variablennamen vorkommen, die exakt in variablen[].name existieren. Kein beschreibender Fließtext, der eine Wertquelle meint, ohne dass dafür eine Variable existiert. Beispiel: nicht "Summe Arbeitsstunden pro Jahr (gefiltert nach Ausbildungsstand)" mit nur einer Variable "Ausbildungsstand", sondern zwei Variablen (z.B. "Arbeitsstunden_pro_Jahr", "Ausbildungsstand") und formel z.B. "Summe(Arbeitsstunden_pro_Jahr, gefiltert nach Ausbildungsstand) / Anzahl(gefiltert nach Ausbildungsstand)".
+   - Variablennamen müssen im formel-String exakt so vorkommen wie in variablen[].name. Das ist zwingend für Verlinkbarkeit und Auswertung.
 
 3. Excel-Funktionen in Pseudocode umwandeln:
    - SUMME(A1:A10) → "Wert1 + Wert2 + ... + Wert10" oder "Summe aller Werte" (mit konkreten Variablennamen).
    - WENN(Bedingung;Wert1;Wert2) → "Wenn Bedingung dann Wert1 sonst Wert2".
    - MITTELWERT / AVERAGE → z.B. "(Var1 + Var2 + ...) / n" mit sprechenden Namen.
-   - SUMIFS(Summenbereich, Kriterienbereich, Kriterium) → "Summe ... (gefiltert nach Kriterium)" – das Kriterium ist die Zellreferenz (eine Variable). Z.B. SUMIFS(Tabelle[Wert], Tabelle[Gruppe], A9) → "Summe Wert (gefiltert nach Ausbildungsstand) / Anzahl (gefiltert nach Ausbildungsstand)" mit einer Variable "Ausbildungsstand" (aus A9).
-   - COUNTIFS(Kriterienbereich, Kriterium) → "Anzahl (gefiltert nach Kriterium)" – Kriterium = Zellreferenz (gleiche Variable wie oben).
-   - Generisch: jede Funktion durch lesbaren Pseudocode ersetzen.
+   - SUMIFS(Summenbereich, Kriterienbereich, Kriterium): Summenbereich (Tabellenspalte) → eine Variable (z.B. "Arbeitsstunden_pro_Jahr"); Kriteriumszelle (z.B. A9) → weitere Variable (z.B. "Ausbildungsstand"). Formel z.B. "Summe(Arbeitsstunden_pro_Jahr, gefiltert nach Ausbildungsstand) / Anzahl(gefiltert nach Ausbildungsstand)" – beide Variablennamen müssen in variablen[] stehen.
+   - COUNTIFS(Kriterienbereich, Kriterium): Kriterium = Zellreferenz (Variable, z.B. "Ausbildungsstand").
+   - INDEX(Tabelle, Zeile, Spalte): Tabelle (z.B. Lohn[]) → eine Variable (z.B. "Lohn_Tabelle"); MATCH(Kriterium, …) liefert Zeile/Spalte – die Kriteriumszelle (z.B. H9, I4) je eine Variable (z.B. "Ausbildungsstand", "Spaltenkopf"). Formel z.B. "Wert aus Lohn_Tabelle an Zeile(Ausbildungsstand) und Spalte(Spaltenkopf)" – alle drei Variablennamen in variablen[]. WICHTIG für Auswertung: Variablen in dieser Reihenfolge ausgeben – (1) Tabelle, (2) Zeilenkriterium (z.B. H9), (3) Spaltenkriterium (z.B. I4). Bei INDEX/MATCH zusätzlich "operation": "index_lookup" im JSON setzen.
+   - MATCH(Suchwert, Bereich, 0): Suchwert (Zellreferenz) = eine Variable; der Bereich (Tabelle[Spalte] oder [#headers]) dient nur der Lookup-Logik, keine zusätzliche Variable außer der Tabelle selbst (siehe INDEX).
+   - Generisch: jede Funktion durch lesbaren Pseudocode ersetzen; jede Wertquelle (Zelle, Tabellenspalte oder Tabelle als Ganzes) = eine Variable.
 
 4. Fehlerbehandlungs-Funktionen NICHT in den Pseudocode übernehmen:
    - IFERROR(Wert;Ersatz) → nur den ersten Parameter "Wert" in Pseudocode umwandeln; Ersatz und Fehlerbehandlung weglassen.
@@ -49,13 +52,14 @@ AUSGABE (nur dieses JSON-Schema, keine weiteren Felder):
 
 {
   "name": "Kurzer, beschreibender Name der Berechnungsvorschrift (aus Beschreibung/Formel)",
-  "formel": "Menschenlesbarer Pseudocode. Jeder Variablenname aus variablen[] muss exakt hier vorkommen.",
+  "formel": "Menschenlesbarer Pseudocode. Nur Variablennamen aus variablen[] (exakt so) und Operatoren/Strukturwörter (Summe, gefiltert nach, etc.); keine zusätzlichen werttragenden Begriffe ohne Variable.",
   "variablen": [
     {
       "name": "Variablenname (exakt so wie im formel-String)",
       "ist_primitive": true
     }
   ],
+  "operation": "optional: 'index_lookup' nur bei INDEX/MATCH-Formeln; sonst weglassen (Default = Ausdruck)",
   "metadaten": {
     "kategorie": "z.B. Gehalt, Kosten, Umsatz",
     "symbol": "Kürzel (z.B. MNG, GK)",
@@ -67,5 +71,7 @@ AUSGABE (nur dieses JSON-Schema, keine weiteren Felder):
 WICHTIG:
 - referenz_berechnungsvorschrift_id darf NICHT gesetzt werden (wird vom System später befüllt).
 - Jede Variable nur mit "name" und "ist_primitive": true.
-- name: aus Beschreibung/Kontext ableiten; formel: nur Pseudocode; metadaten: aus Kontext ableiten.
-- Die Reihenfolge der Variablen ist beliebig; die Namen müssen in formel exakt vorkommen.
+- Jede Wertquelle (Zellreferenz oder Tabellenspalte, die Werte liefert) = eine Variable. Im formel-String nur diese Variablennamen (exakt) verwenden; keine werttragenden Begriffe ohne zugehörige Variable.
+- Bei INDEX/MATCH-Formeln: "operation": "index_lookup" setzen und Variablen in dieser Reihenfolge ausgeben: (1) Tabelle, (2) Zeilenkriterium (z.B. H9), (3) Spaltenkriterium (z.B. I4). Sonst "operation" weglassen.
+- name: aus Beschreibung/Kontext ableiten; formel: nur Pseudocode mit Variablennamen; metadaten: aus Kontext ableiten.
+- Die Reihenfolge der Variablen ist beliebig (außer bei index_lookup: siehe oben); die Namen müssen in formel exakt vorkommen.

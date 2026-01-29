@@ -39,6 +39,7 @@ function erstelleBerechnungsvorschriftCard(bv) {
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">${bv.name}</h5>
                 <span class="badge bg-info">Version ${bv.version}</span>
+                ${bv.operation === 'index_lookup' ? '<span class="badge bg-secondary ms-1">Tabellenlookup</span>' : ''}
             </div>
             <div class="card-body">
                 <p class="mb-2"><strong>Formel:</strong> ${formelHtml}</p>

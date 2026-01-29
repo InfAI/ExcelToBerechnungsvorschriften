@@ -162,6 +162,9 @@ Bitte generiere die Berechnungsvorschrift im JSON-Format wie im Beispiel gezeigt
             beschreibung=zelleneingabe.beschreibung
         )
         
+        # Operation (optional) – z.B. "index_lookup" bei INDEX/MATCH; für Auswertung mit echten Werten
+        operation = data.get("operation")
+        
         # Berechnungsvorschrift erstellen
         berechnungsvorschrift = Berechnungsvorschrift(
             name=data["name"],
@@ -171,7 +174,8 @@ Bitte generiere die Berechnungsvorschrift im JSON-Format wie im Beispiel gezeigt
             quelle=quelle,
             version=1,
             erstellt_am=datetime.now(),
-            geaendert_am=datetime.now()
+            geaendert_am=datetime.now(),
+            operation=operation
         )
         
         return berechnungsvorschrift
