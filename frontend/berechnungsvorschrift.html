@@ -226,18 +226,29 @@
             // Variablen
             const variablenListe = document.getElementById('variablen-liste');
             if (bv.variablen && bv.variablen.length > 0) {
-                variablenListe.innerHTML = bv.variablen.map(variable => {
+                variablenListe.innerHTML = bv.variablen.map((variable, index) => {
                     if (variable.ist_primitive) {
                         return `<li class="list-group-item">${variable.name} <span class="badge bg-secondary">primitiv</span></li>`;
                     } else {
-                        return `<li class="list-group-item">
-                            ${variable.name} 
-                            <a href="berechnungsvorschrift.html?id=${variable.referenz_berechnungsvorschrift_id}" class="badge bg-primary">
-                                → ${variable.referenz_berechnungsvorschrift_id.substring(0, 8)}...
-                            </a>
+                        return `<li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                ${variable.name}
+                                <a href="berechnungsvorschrift.html?id=${variable.referenz_berechnungsvorschrift_id}" class="badge bg-primary ms-1">
+                                    → ${variable.referenz_berechnungsvorschrift_id.substring(0, 8)}...
+                                </a>
+                            </span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary btn-verlinkung-aufheben" data-var-index="${index}" title="Verlinkung aufheben">Verlinkung aufheben</button>
                         </li>`;
                     }
                 }).join('');
+                // Event-Listener für "Verlinkung aufheben": Variablenname aus aktuelleBerechnungsvorschrift per Index
+                variablenListe.querySelectorAll('.btn-verlinkung-aufheben').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const index = parseInt(this.getAttribute('data-var-index'), 10);
+                        const name = aktuelleBerechnungsvorschrift && aktuelleBerechnungsvorschrift.variablen && aktuelleBerechnungsvorschrift.variablen[index] && aktuelleBerechnungsvorschrift.variablen[index].name;
+                        if (name) verlinkungAufheben(name);
+                    });
+                });
             } else {
                 variablenListe.innerHTML = '<li class="list-group-item">Keine Variablen</li>';
             }
@@ -350,6 +361,19 @@
                 window.location.href = 'berechnungsvorschriften.html';
             } catch (error) {
                 alert(`Fehler beim Löschen: ${error.message}`);
+            }
+        }
+        
+        async function verlinkungAufheben(variablenname) {
+            if (!aktuelleBerechnungsvorschrift) return;
+            if (!confirm(`Verlinkung für Variable "${variablenname}" aufheben? Die Variable wird wieder als primitiv geführt.`)) {
+                return;
+            }
+            try {
+                await api.verlinkungAufheben(aktuelleBerechnungsvorschrift.id, variablenname);
+                location.reload();
+            } catch (error) {
+                alert(`Fehler: ${error.message}`);
             }
         }
     </script>

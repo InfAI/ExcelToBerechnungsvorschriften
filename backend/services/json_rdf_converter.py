@@ -89,7 +89,9 @@ class JSONRDFConverter:
                 graph.add((bv_uri, property_uri("hatQuelleBeschreibung"), 
                           Literal(bv.quelle.beschreibung)))
         
-        # Variablen
+        # Variablen: Jede Variable wird als RDF-Objekt angelegt; Verlinkung über
+        # referenz_berechnungsvorschrift_id. Variablennamen im formel-String müssen zu
+        # Variable.name passen, damit die Anzeige/Verlinkung im Frontend funktioniert.
         logger.debug(f"Füge {len(bv.variablen)} Variablen zum RDF-Graph hinzu...")
         var_type = URIRef(f"{namespace_iri}Variable")
         for var in bv.variablen:

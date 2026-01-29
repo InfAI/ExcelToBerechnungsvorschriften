@@ -7,16 +7,23 @@ from pydantic import BaseModel, Field
 
 
 class Variable(BaseModel):
-    """Eine Variable in einer Berechnungsvorschrift"""
+    """
+    Eine Variable in einer Berechnungsvorschrift.
+    Semantisch ist jede Variable ein Verweis auf eine Berechnungsvorschrift:
+    - Mit referenz_berechnungsvorschrift_id: Verweis auf eine konkrete BV (ist_primitive=False).
+    - Ohne Referenz (ist_primitive=True): impliziter Verweis auf einen einfachen Wert/Eingabe;
+      keine eigene BV-Entität erforderlich.
+    Der name muss exakt mit dem Variablennamen im formel-String übereinstimmen (Verlinkbarkeit).
+    """
     
-    name: str = Field(..., description="Gut lesbarer Variablenname")
+    name: str = Field(..., description="Gut lesbarer Variablenname; muss im formel-String vorkommen")
     referenz_berechnungsvorschrift_id: Optional[str] = Field(
         None, 
-        description="ID der referenzierten Berechnungsvorschrift (optional)"
+        description="ID der referenzierten Berechnungsvorschrift (optional; wird vom Matcher gesetzt)"
     )
     ist_primitive: bool = Field(
         True, 
-        description="True wenn es keine Referenz zu einer anderen Berechnungsvorschrift gibt"
+        description="True wenn keine Referenz zu einer anderen Berechnungsvorschrift (einfacher Wert)"
     )
 
 
@@ -93,6 +100,23 @@ class BerechnungsvorschriftErstellen(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+class BerechnungsvorschriftCreateResponse(Berechnungsvorschrift):
+    """
+    Response-Model für POST /api/berechnungsvorschriften.
+    Enthält die erstellte Berechnungsvorschrift plus optionale Zusatzinfos:
+    - aktualisierte_verlinkungen: BVs, die durch Rückwärts-Verlinkung aktualisiert wurden
+    - mehrere_treffer: Variablen mit mehreren Match-Optionen (Benutzer muss wählen)
+    """
+    aktualisierte_verlinkungen: Optional[List[dict]] = Field(
+        None,
+        description="Liste von {bv_id, name} – BVs, die durch Rückwärts-Verlinkung aktualisiert wurden"
+    )
+    mehrere_treffer: Optional[List[dict]] = Field(
+        None,
+        description="Liste von {variablenname, optionen} – Variablen mit mehreren Treffern zur Auswahl"
+    )
 
 
 # Forward reference auflösen

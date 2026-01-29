@@ -172,6 +172,15 @@
                 html += '</ul>';
             }
             
+            // Rückwärts-Verlinkungen: Anzeigen, welche BVs automatisch verlinkt wurden
+            if (bv.aktualisierte_verlinkungen && bv.aktualisierte_verlinkungen.length > 0) {
+                html += '<div class="alert alert-info mt-3"><h6>Rückwärts-Verlinkung</h6><p>Folgende Berechnungsvorschriften wurden mit dieser Zelle verlinkt:</p><ul class="list-unstyled mb-0">';
+                bv.aktualisierte_verlinkungen.forEach(av => {
+                    html += `<li><a href="berechnungsvorschrift.html?id=${av.bv_id}">${av.name || av.bv_id}</a></li>`;
+                });
+                html += '</ul></div>';
+            }
+            
             // Mehrere Treffer anzeigen (falls vorhanden)
             if (bv.mehrere_treffer && bv.mehrere_treffer.length > 0) {
                 html += '<div class="alert alert-warning mt-3"><h6>Mehrere Treffer gefunden</h6>';

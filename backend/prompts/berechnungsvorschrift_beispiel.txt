@@ -1,5 +1,14 @@
-BEISPIEL-EINGABE:
+# Beispiele: Excel-Formel → Berechnungsvorschrift (JSON)
 
+Format: BEISPIEL-EINGABE (Zelleneingabe) gefolgt von GEWÜNSCHTES JSON-OUTPUT.
+Im Output nur die Felder name, formel, variablen, metadaten. Kein referenz_berechnungsvorschrift_id; jede Variable mit ist_primitive: true.
+Variablennamen im formel-String müssen exakt mit variablen[].name übereinstimmen.
+
+---
+
+BEISPIEL 1 – Einfache Formel, eine Variable
+
+BEISPIEL-EINGABE:
 Tabellenidentifikator: Tabelle1
 Tabellenblatt: Sheet1
 Zellenidentifikator: A1
@@ -7,7 +16,6 @@ Beschreibung: Monatliches Nettogehalt berechnen
 Formel: =B1/12
 
 GEWÜNSCHTES JSON-OUTPUT:
-
 {
   "name": "monatliches Nettogehalt",
   "formel": "Jahresnettogehalt / 12",
@@ -24,3 +32,197 @@ GEWÜNSCHTES JSON-OUTPUT:
     "einheit": "EUR"
   }
 }
+
+Erklärung: B1 wird aus der Beschreibung ("Nettogehalt") als "Jahresnettogehalt" interpretiert. Der Name "Jahresnettogehalt" erscheint exakt so in formel.
+
+---
+
+BEISPIEL 2 – Excel-Funktion AVERAGE, mehrere Zellen
+
+BEISPIEL-EINGABE:
+Tabellenidentifikator: Tabelle1
+Tabellenblatt: Sheet1
+Zellenidentifikator: C10
+Beschreibung: Durchschnitt der Quartalsumsätze
+Formel: =AVERAGE(B1,B2,B3,B4)
+
+GEWÜNSCHTES JSON-OUTPUT:
+{
+  "name": "Durchschnitt der Quartalsumsätze",
+  "formel": "(Quartalsumsatz_1 + Quartalsumsatz_2 + Quartalsumsatz_3 + Quartalsumsatz_4) / 4",
+  "variablen": [
+    {
+      "name": "Quartalsumsatz_1",
+      "ist_primitive": true
+    },
+    {
+      "name": "Quartalsumsatz_2",
+      "ist_primitive": true
+    },
+    {
+      "name": "Quartalsumsatz_3",
+      "ist_primitive": true
+    },
+    {
+      "name": "Quartalsumsatz_4",
+      "ist_primitive": true
+    }
+  ],
+  "metadaten": {
+    "kategorie": "Umsatz",
+    "symbol": "DQ",
+    "datentyp": "decimal",
+    "einheit": "EUR"
+  }
+}
+
+Erklärung: AVERAGE wird in expliziten Pseudocode umgewandelt; jede Zelle (B1–B4) wird zu einer Variable mit sprechendem Namen. Alle vier Variablennamen kommen exakt in formel vor.
+
+---
+
+BEISPIEL 3 – Mehrere Variablen, Addition
+
+BEISPIEL-EINGABE:
+Tabellenidentifikator: Tabelle1
+Tabellenblatt: Sheet1
+Zellenidentifikator: D5
+Beschreibung: Gesamtkosten aus Material und Lohn
+Formel: =A1+B1+C1
+
+GEWÜNSCHTES JSON-OUTPUT:
+{
+  "name": "Gesamtkosten aus Material und Lohn",
+  "formel": "Materialkosten + Lohnkosten + Nebenkosten",
+  "variablen": [
+    {
+      "name": "Materialkosten",
+      "ist_primitive": true
+    },
+    {
+      "name": "Lohnkosten",
+      "ist_primitive": true
+    },
+    {
+      "name": "Nebenkosten",
+      "ist_primitive": true
+    }
+  ],
+  "metadaten": {
+    "kategorie": "Kosten",
+    "symbol": "GK",
+    "datentyp": "decimal",
+    "einheit": "EUR"
+  }
+}
+
+Erklärung: A1→Materialkosten, B1→Lohnkosten, C1→Nebenkosten aus der Beschreibung. Reihenfolge in variablen beliebig; Namen in formel exakt wie in variablen.
+
+---
+
+BEISPIEL 4 – IFERROR: nur Wert-Teil übernehmen
+
+Fehlerbehandlungs-Funktionen (IFERROR, IFNA) nicht in den Pseudocode übernehmen. Nur den ersten Parameter (den eigentlichen Ausdruck) in Pseudocode umwandeln; Ersatzwert und Fehlerbehandlung weglassen.
+
+BEISPIEL-EINGABE:
+Tabellenidentifikator: Tabelle1
+Tabellenblatt: Sheet1
+Zellenidentifikator: E5
+Beschreibung: Umsatz pro Einheit (ohne Fehleranzeige)
+Formel: =IFERROR(A1/B1;"-")
+
+GEWÜNSCHTES JSON-OUTPUT:
+{
+  "name": "Umsatz pro Einheit",
+  "formel": "Umsatz / Menge",
+  "variablen": [
+    {
+      "name": "Umsatz",
+      "ist_primitive": true
+    },
+    {
+      "name": "Menge",
+      "ist_primitive": true
+    }
+  ],
+  "metadaten": {
+    "kategorie": "Umsatz",
+    "symbol": "UPE",
+    "datentyp": "decimal",
+    "einheit": "EUR/Stk"
+  }
+}
+
+Erklärung: Nur A1/B1 wird umgewandelt → "Umsatz / Menge". Der Ersatzwert "-" und die Fehlerbehandlung von IFERROR erscheinen nicht im Pseudocode.
+
+---
+
+BEISPIEL 5 – SUMME mit Bereich
+
+BEISPIEL-EINGABE:
+Tabellenidentifikator: Tabelle1
+Tabellenblatt: Sheet1
+Zellenidentifikator: F10
+Beschreibung: Jahresgesamtumsatz aus Monatswerten
+Formel: =SUMME(B1:B12)
+
+GEWÜNSCHTES JSON-OUTPUT:
+{
+  "name": "Jahresgesamtumsatz aus Monatswerten",
+  "formel": "Monatsumsatz_1 + Monatsumsatz_2 + Monatsumsatz_3 + Monatsumsatz_4 + Monatsumsatz_5 + Monatsumsatz_6 + Monatsumsatz_7 + Monatsumsatz_8 + Monatsumsatz_9 + Monatsumsatz_10 + Monatsumsatz_11 + Monatsumsatz_12",
+  "variablen": [
+    {"name": "Monatsumsatz_1", "ist_primitive": true},
+    {"name": "Monatsumsatz_2", "ist_primitive": true},
+    {"name": "Monatsumsatz_3", "ist_primitive": true},
+    {"name": "Monatsumsatz_4", "ist_primitive": true},
+    {"name": "Monatsumsatz_5", "ist_primitive": true},
+    {"name": "Monatsumsatz_6", "ist_primitive": true},
+    {"name": "Monatsumsatz_7", "ist_primitive": true},
+    {"name": "Monatsumsatz_8", "ist_primitive": true},
+    {"name": "Monatsumsatz_9", "ist_primitive": true},
+    {"name": "Monatsumsatz_10", "ist_primitive": true},
+    {"name": "Monatsumsatz_11", "ist_primitive": true},
+    {"name": "Monatsumsatz_12", "ist_primitive": true}
+  ],
+  "metadaten": {
+    "kategorie": "Umsatz",
+    "symbol": "JGU",
+    "datentyp": "decimal",
+    "einheit": "EUR"
+  }
+}
+
+Erklärung: SUMME(B1:B12) wird zu expliziten Variablen Monatsumsatz_1 bis Monatsumsatz_12; alle Namen kommen exakt in formel vor.
+
+---
+
+BEISPIEL 6 – IFERROR + SUMIFS/COUNTIFS, Tabellenbezüge, eine Zellvariable (A9)
+
+Formel nutzt IFERROR (nur Wert-Teil übernehmen), SUMIFS/COUNTIFS (bedingte Summe/Anzahl) und Tabellenbezüge (MAJahr1[Spalte]).
+Nur A9 ist eine Zellreferenz → genau eine Variable. Tabellenbezüge erzeugen keine Variablen.
+
+BEISPIEL-EINGABE:
+Tabellenidentifikator: MAJahr1
+Tabellenblatt: Sheet1
+Zellenidentifikator: B10
+Beschreibung: Durchschnittliche Arbeitsstunden pro Jahr nach Ausbildungsstand
+Formel: =IFERROR(SUMIFS(MAJahr1[Arbeitsstunden/ Jahr],MAJahr1[Ausbildungsstand],A9)/COUNTIFS(MAJahr1[Ausbildungsstand],A9)," ")
+
+GEWÜNSCHTES JSON-OUTPUT:
+{
+  "name": "Durchschnittliche Arbeitsstunden pro Jahr nach Ausbildungsstand",
+  "formel": "Summe Arbeitsstunden pro Jahr (gefiltert nach Ausbildungsstand) / Anzahl Einträge (gefiltert nach Ausbildungsstand)",
+  "variablen": [
+    {
+      "name": "Ausbildungsstand",
+      "ist_primitive": true
+    }
+  ],
+  "metadaten": {
+    "kategorie": "Personal",
+    "symbol": "DAPJ",
+    "datentyp": "decimal",
+    "einheit": "h"
+  }
+}
+
+Erklärung: IFERROR wird weggelassen (nur der erste Parameter wird umgewandelt). A9 kommt zweimal vor (in SUMIFS und COUNTIFS) → trotzdem nur eine Variable "Ausbildungsstand". MAJahr1[Arbeitsstunden/ Jahr] und MAJahr1[Ausbildungsstand] sind Tabellenbezüge, keine Zellreferenzen → keine zusätzlichen Variablen. Der Variablenname "Ausbildungsstand" erscheint exakt so in formel.

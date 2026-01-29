@@ -115,4 +115,13 @@ const api = {
             method: 'POST',
         });
     },
+    
+    /**
+     * Hebt die Verlinkung einer Variable auf (Variable wird wieder primitiv)
+     */
+    async verlinkungAufheben(bvId, variablenname) {
+        return this.request(`/berechnungsvorschriften/${bvId}/variablen/${encodeURIComponent(variablenname)}/verlinkung-aufheben`, {
+            method: 'POST',
+        });
+    },
 };

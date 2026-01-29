@@ -12,7 +12,7 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 logger = logging.getLogger(__name__)
 
 from models.zelleneingabe import Zelleneingabe
-from models.berechnungsvorschrift import Berechnungsvorschrift, BerechnungsvorschriftErstellen
+from models.berechnungsvorschrift import Berechnungsvorschrift, BerechnungsvorschriftErstellen, BerechnungsvorschriftCreateResponse
 from services.llm_service import LLMService
 from services.rdf_service import RDFService
 from services.berechnungsvorschrift_matcher import BerechnungsvorschriftMatcher
@@ -27,8 +27,8 @@ matcher = BerechnungsvorschriftMatcher(rdf_service)
 versionierung = VersionierungService(rdf_service)
 
 
-@router.post("", response_model=Berechnungsvorschrift, status_code=201)
-async def erstelle_berechnungsvorschrift(request: BerechnungsvorschriftErstellen) -> Berechnungsvorschrift:
+@router.post("", response_model=BerechnungsvorschriftCreateResponse, status_code=201)
+async def erstelle_berechnungsvorschrift(request: BerechnungsvorschriftErstellen) -> BerechnungsvorschriftCreateResponse:
     """
     Erstellt eine neue Berechnungsvorschrift aus Zelleneingabe-Daten
     
@@ -74,20 +74,32 @@ async def erstelle_berechnungsvorschrift(request: BerechnungsvorschriftErstellen
         rdf_service.speichere_berechnungsvorschrift(berechnungsvorschrift)
         logger.info(f"Berechnungsvorschrift {berechnungsvorschrift.id} erfolgreich gespeichert")
         
-        # Wenn mehrere Treffer vorhanden sind, diese in der Response mitgeben
-        if mehrere_treffer:
-            # Erweiterte Response mit Matching-Informationen
-            response_data = berechnungsvorschrift.model_dump()
-            response_data["mehrere_treffer"] = [
-                {
-                    "variablenname": var_name,
-                    "optionen": [{"id": bv.id, "name": bv.name, "symbol": bv.metadaten.symbol} for bv in optionen]
-                }
-                for var_name, optionen in mehrere_treffer
-            ]
-            return Berechnungsvorschrift(**response_data)
+        # Rückwärts-Verlinkung: Andere BVs, die eine Variable haben, die jetzt auf diese BV verlinkt werden kann
+        aktualisierte_verlinkungen = []
+        try:
+            bvs_mit_passender_var = matcher.finde_bvs_mit_passender_variable(berechnungsvorschrift)
+            for andere_bv, variablenname in bvs_mit_passender_var:
+                if matcher.pruefe_zirkulaere_abhaengigkeiten(andere_bv, berechnungsvorschrift.id):
+                    logger.warning(f"Rückwärts-Verlinkung übersprungen (Zirkularität): {andere_bv.id} -> {berechnungsvorschrift.id}")
+                    continue
+                andere_bv = matcher.verlinke_variable_manuell(andere_bv, variablenname, berechnungsvorschrift.id)
+                rdf_service.speichere_berechnungsvorschrift(andere_bv)
+                aktualisierte_verlinkungen.append({"bv_id": andere_bv.id, "name": andere_bv.name})
+                logger.info(f"Rückwärts-Verlinkung: BV {andere_bv.id} Variable '{variablenname}' -> {berechnungsvorschrift.id}")
+        except Exception as e:
+            logger.warning(f"Rückwärts-Verlinkung fehlgeschlagen (wird ignoriert): {e}")
         
-        return berechnungsvorschrift
+        # Response mit optionalen Zusatzinfos (Rückwärts-Verlinkungen, mehrere Treffer)
+        response_data = berechnungsvorschrift.model_dump()
+        response_data["aktualisierte_verlinkungen"] = aktualisierte_verlinkungen
+        response_data["mehrere_treffer"] = [
+            {
+                "variablenname": var_name,
+                "optionen": [{"id": bv.id, "name": bv.name, "symbol": bv.metadaten.symbol} for bv in optionen]
+            }
+            for var_name, optionen in mehrere_treffer
+        ]
+        return BerechnungsvorschriftCreateResponse(**response_data)
         
     except ValueError as e:
         logger.warning(f"Validierungsfehler bei Erstellung: {e}")
@@ -257,6 +269,23 @@ async def regeneriere_berechnungsvorschrift(
     logger.info(f"Berechnungsvorschrift {bv_id} erfolgreich neu generiert (Version {neue_version.version})")
     
     return neue_version
+
+
+@router.post("/{bv_id}/variablen/{variablenname}/verlinkung-aufheben", response_model=Berechnungsvorschrift)
+async def verlinkung_aufheben(bv_id: str, variablenname: str) -> Berechnungsvorschrift:
+    """
+    Hebt die Verlinkung einer Variable auf (Variable wird wieder primitiv / ohne Referenz).
+    """
+    logger.info(f"Verlinkung aufheben: Berechnungsvorschrift={bv_id}, Variable={variablenname}")
+    bv = rdf_service.lade_berechnungsvorschrift(bv_id)
+    if not bv:
+        logger.warning(f"Berechnungsvorschrift {bv_id} nicht gefunden")
+        raise HTTPException(status_code=404, detail="Berechnungsvorschrift nicht gefunden")
+    
+    bv = matcher.verlinkung_aufheben(bv, variablenname)
+    rdf_service.speichere_berechnungsvorschrift(bv)
+    logger.info(f"Verlinkung für Variable '{variablenname}' in {bv_id} aufgehoben")
+    return bv
 
 
 @router.post("/{bv_id}/variablen/{variablenname}/verlinken")

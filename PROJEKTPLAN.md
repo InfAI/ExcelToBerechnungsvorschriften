@@ -372,11 +372,91 @@ services:
 
 ## Offene Todos (für spätere Implementierung)
 
-1. LLM-Beispiel korrigieren und erweitern: Beispiel in `backend/prompts/berechnungsvorschrift_beispiel.txt` überprüfen und erweitern für bessere LLM-Ergebnisse
-2. Formel-Speicherung und Verlinkbarkeit prüfen: Überprüfung wie Formel gespeichert wird, um sicherzustellen dass Berechnungsvorschriften korrekt verlinkbar sind (betrifft Speicherung im RDF-Modell und Extraktion von Variablen für Verlinkungen). Jede variable im Pseudocode soll als Variable (middleware und fuseki) angelegt werden (mit allen metadaten) um eine spätere verlinkung zu ermöglichen. 
-3. Rückwärts-Verlinkung implementieren: Nach Anlegen neuer Berechnungsvorschrift prüfen, ob die dazugehörige Zelle (basierend auf Tabellenidentifikator, Tabellenblatt, Zellenidentifikator) in anderen bestehenden Berechnungsvorschriften verlinkt werden kann. Im frontend diese neu verlinkten anschließend anzeigen.
-4. Aufheben von Verlinkungen im pseudocode ermöglichen.
-5. Excel-Funktionen wie IFERROR ausschließen: Anpassung des LLM-Prompts (`backend/prompts/berechnungsvorschrift_prompt.txt`), um Funktionen wie IFERROR nicht in Pseudocode einfließen zu lassen
+### 1. LLM-Beispiel korrigieren und erweitern
+
+**Kurzbeschreibung:** Beispiel in `backend/prompts/berechnungsvorschrift_beispiel.txt` überprüfen und erweitern für bessere LLM-Ergebnisse.
+
+**Ziel:** Die Beispiel-Datei inhaltlich und formal verbessern, damit das LLM konsistenteres JSON liefert.
+
+**Konkrete Schritte:**
+- **Korrektur:** Prüfen, ob das aktuelle Beispiel (B1/12 → "Jahresnettogehalt / 12") dem erwarteten JSON-Schema entspricht (z. B. `referenz_berechnungsvorschrift_id` im Beispiel weglassen oder als optional kennzeichnen, da es erst vom Matcher gesetzt wird).
+- **Erweiterung:** Zwei weitere Beispiele ergänzen:
+  - Ein Beispiel mit **Excel-Funktion** (z. B. AVERAGE oder SUMME), um die Umwandlung in Pseudocode zu zeigen.
+  - Ein Beispiel mit **mehreren Variablen**, um die Variablen-Liste und sprechende Namen zu verdeutlichen.
+- **Format:** Beispiele als "BEISPIEL-EINGABE" + "GEWÜNSCHTES JSON-OUTPUT" beibehalten; einheitliche Formatierung und keine Widersprüche zum Prompt.
+
+**Betroffene Dateien:** `backend/prompts/berechnungsvorschrift_beispiel.txt`, ggf. `backend/services/llm_service.py` falls das Einlesen mehrerer Beispiele angepasst werden muss.
+
+---
+
+### 2. Formel-Speicherung und Verlinkbarkeit prüfen / Variable = Berechnungsvorschrift
+
+**Kurzbeschreibung:** Überprüfung wie Formel gespeichert wird; jede Variable im Pseudocode soll als Variable (Middleware und Fuseki) angelegt werden, um Verlinkbarkeit zu ermöglichen. "Variable" = Verweis auf Berechnungsvorschrift; auch einfache Werte sind als BV modellierbar.
+
+**Ziel:** Sicherstellen, dass jede Variable im Pseudocode auf eine Berechnungsvorschrift verweist. "Variable" ist damit ein Synonym für "Verweis auf eine Berechnungsvorschrift"; auch einfache Werte (Eingaben) sind als Berechnungsvorschrift modellierbar.
+
+**Konkrete Schritte:**
+- **Datenmodell prüfen:** In `backend/models/berechnungsvorschrift.py` ist `Variable` aktuell: `name`, `referenz_berechnungsvorschrift_id`, `ist_primitive`. Für "jede Variable verweist auf eine BV" gilt:
+  - Entweder: Jede Variable hat zwingend `referenz_berechnungsvorschrift_id`; "primitive" Werte werden durch spezielle BVs (z. B. "Eingabewert") repräsentiert.
+  - Oder: `ist_primitive=true` bleibt erlaubt, aber semantisch wird klargestellt, dass auch dann eine (implizite) BV "einfacher Wert" gemeint ist – ohne zwingend neue BV-Entitäten anzulegen.
+- **RDF/JSON-Konsistenz:** In `backend/services/json_rdf_converter.py` prüfen, dass aus `formel` (String) und `variablen` (Liste) die Verlinkung eindeutig herstellbar ist: Variablennamen im Formel-String müssen exakt zu `Variable.name` passen; für die Anzeige werden Namen + `referenz_berechnungsvorschrift_id` genutzt.
+- **Frontend-Verlinkbarkeit:** In `frontend/js/berechnungsvorschriften.js` und `frontend/berechnungsvorschrift.html` ist die Verlinkung bereits umgesetzt (Variable mit Referenz = Link zur BV). Prüfen, dass bei allen Variablen, die eine Referenz haben, der Link korrekt gesetzt wird und dass keine Variablen im Pseudocode fehlen.
+
+**Offene Designentscheidung (für Implementierung klären):** Sollen für "primitive" Werte explizit eigene Berechnungsvorschriften (z. B. Typ "Eingabe") angelegt werden, oder reicht `ist_primitive=true` mit optional `referenz_berechnungsvorschrift_id=None`?
+
+**Betroffene Dateien:** `backend/models/berechnungsvorschrift.py`, `backend/services/json_rdf_converter.py`, `backend/services/llm_service.py`, `backend/services/berechnungsvorschrift_matcher.py`, Frontend-Dateien für Anzeige/Verlinkung.
+
+---
+
+### 3. Rückwärts-Verlinkung implementieren
+
+**Kurzbeschreibung:** Nach Anlegen neuer Berechnungsvorschrift prüfen, ob die dazugehörige Zelle in anderen bestehenden Berechnungsvorschriften verlinkt werden kann. Verlinkung automatisch durchführen; im Frontend neu verlinkte BVs anzeigen und Möglichkeit geben, Verlinkungen zu ändern.
+
+**Ziel:** Nach dem Anlegen einer neuen Berechnungsvorschrift prüfen, ob deren Zelle (Tabellenidentifikator + Tabellenblatt + Zellenidentifikator) in **anderen** bestehenden Berechnungsvorschriften als Variable vorkommt und dort verlinkt werden kann. Verlinkung **automatisch** durchführen; im UI soll der Benutzer die Verlinkungen **ändern** können.
+
+**Konkrete Schritte:**
+- **Backend – neue Logik nach Speichern:** In `backend/api/routes/berechnungsvorschriften.py` nach `rdf_service.speichere_berechnungsvorschrift(berechnungsvorschrift)`:
+  - Alle Berechnungsvorschriften laden, die eine Variable mit `ist_primitive=true` (oder ohne Referenz) haben und deren Matching-Kriterium (Quelle: Tabellenidentifikator + Tabellenblatt + Zellenidentifikator **oder** Beschreibung) mit der **neu angelegten** BV übereinstimmt.
+  - Dafür: Matcher erweitern oder neue Methode, z. B. `finde_bvs_mit_passender_variable(neue_bv)` – sucht BVs, in denen eine Variable auf die Zelle/Quelle der neuen BV passt.
+  - Für jede gefundene BV: Variable auf die neue BV verlinken (`referenz_berechnungsvorschrift_id` setzen, `ist_primitive=false`), Zirkularität prüfen, dann `rdf_service.speichere_berechnungsvorschrift(bv)` aufrufen.
+- **Response:** Liste der aktualisierten BVs (IDs/ Namen) in der Response von `POST /api/berechnungsvorschriften` zurückgeben (z. B. `aktualisierte_verlinkungen: [{ bv_id, name }, ...]`), damit das Frontend sie anzeigen kann.
+- **Frontend:** Nach Erstellung einer neuen BV anzeigen, dass "X weitere Berechnungsvorschriften mit dieser Zelle verlinkt wurden" und Links zu diesen BVs anbieten; bestehende UI für manuelle Verlinkung/Änderung (z. B. Editor, manuelles Verlinken) weiter nutzbar lassen.
+
+**Betroffene Dateien:** `backend/services/berechnungsvorschrift_matcher.py` (neue Methode), `backend/api/routes/berechnungsvorschriften.py`, Frontend (Anzeige der Rückwärts-Verlinkungen nach Erstellung).
+
+---
+
+### 4. Aufheben von Verlinkungen im Pseudocode ermöglichen
+
+**Kurzbeschreibung:** Benutzer kann eine bestehende Verlinkung einer Variable aufheben (Variable wird wieder "primitiv" / ohne Referenz).
+
+**Ziel:** Benutzer kann eine bestehende Verlinkung einer Variable aufheben (Variable wird wieder "primitiv" / ohne Referenz).
+
+**Konkrete Schritte:**
+- **Backend – neue API-Route:** Z. B. `POST /api/berechnungsvorschriften/{bv_id}/variablen/{variablenname}/verlinkung-aufheben` (oder `DELETE .../verlinken`). Route lädt die BV, setzt für die Variable `referenz_berechnungsvorschrift_id = None`, `ist_primitive = True`, speichert die BV zurück (über RDF-Service).
+- **Matcher:** In `backend/services/berechnungsvorschrift_matcher.py` Methode `verlinkung_aufheben(berechnungsvorschrift, variablenname)` hinzufügen (analog zu `verlinke_variable_manuell`, nur Referenz entfernen).
+- **Frontend:** In Detailansicht/Editor einer Berechnungsvorschrift pro verlinkter Variable einen Button/Link "Verlinkung aufheben" anbieten; beim Klick API aufrufen und Anzeige aktualisieren.
+
+**Betroffene Dateien:** `backend/api/routes/berechnungsvorschriften.py`, `backend/services/berechnungsvorschrift_matcher.py`, `frontend/js/api.js`, `frontend/berechnungsvorschrift.html` (oder `frontend/js/berechnungsvorschriften.js`).
+
+---
+
+### 5. Excel-Funktionen wie IFERROR ausschließen
+
+**Kurzbeschreibung:** Anpassung des LLM-Prompts (`backend/prompts/berechnungsvorschrift_prompt.txt`), um Funktionen wie IFERROR nicht in Pseudocode einfließen zu lassen.
+
+**Ziel:** Fehlerbehandlungs-Funktionen (IFERROR, IFNA, ggf. ISERROR) sollen **nicht** in den Pseudocode übernommen werden; nur der "Wert"-Teil wird umgewandelt.
+
+**Konkrete Schritte:**
+- **Prompt anpassen:** In `backend/prompts/berechnungsvorschrift_prompt.txt` einen neuen Abschnitt ergänzen, z. B. "Excel-Funktionen die nicht in den Pseudocode einfließen":
+  - IFERROR(Wert;Ersatz) → nur "Wert" in Pseudocode umwandeln, Ersatz und Fehlerbehandlung weglassen.
+  - IFNA analog.
+  - Optional: ISERROR, FEHLER.TYP etc. erwähnen – diese weglassen oder durch den eigentlichen Ausdruck ersetzen.
+- **Beispiel (optional):** In `backend/prompts/berechnungsvorschrift_beispiel.txt` ein kurzes Beispiel mit IFERROR hinzufügen (Eingabe mit IFERROR, gewünschter Output ohne Fehlerteil).
+
+**Betroffene Dateien:** `backend/prompts/berechnungsvorschrift_prompt.txt`, optional `backend/prompts/berechnungsvorschrift_beispiel.txt`.
+
+---
 
 ## Entscheidungen / Anforderungen
 

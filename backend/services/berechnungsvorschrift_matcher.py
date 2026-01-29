@@ -71,6 +71,46 @@ class BerechnungsvorschriftMatcher:
         logger.info(f"Gefunden: {len(passende)} passende Berechnungsvorschrift(en)")
         return passende
     
+    def finde_bvs_mit_passender_variable(
+        self,
+        neue_bv: Berechnungsvorschrift
+    ) -> List[Tuple[Berechnungsvorschrift, str]]:
+        """
+        Findet Berechnungsvorschriften, die eine primitive Variable haben, die auf die
+        neu angelegte BV verlinkt werden kann (Rückwärts-Verlinkung).
+        Matching: Variable ist primitiv und Name stimmt mit neuer BV (Name oder Quelle-Beschreibung) überein.
+        
+        Returns:
+            Liste von (Berechnungsvorschrift, Variablenname) die verlinkt werden können
+        """
+        if not neue_bv.id or not neue_bv.quelle:
+            logger.debug("Rückwärts-Verlinkung: neue BV hat keine ID oder Quelle - überspringe")
+            return []
+        
+        alle_bvs = self.rdf_service.lade_alle_berechnungsvorschriften()
+        neue_name_lower = (neue_bv.name or "").strip().lower()
+        neue_beschreibung_lower = (neue_bv.quelle.beschreibung or "").strip().lower() if neue_bv.quelle else ""
+        ergebnis = []
+        
+        for bv in alle_bvs:
+            if bv.id == neue_bv.id:
+                continue
+            for var in bv.variablen:
+                if not var.ist_primitive and var.referenz_berechnungsvorschrift_id:
+                    continue
+                var_name_lower = (var.name or "").strip().lower()
+                if not var_name_lower:
+                    continue
+                # Variable passt, wenn Name mit neuer BV übereinstimmt oder mit Quell-Beschreibung
+                if (var_name_lower == neue_name_lower or
+                    (neue_beschreibung_lower and var_name_lower in neue_beschreibung_lower) or
+                    (neue_name_lower and neue_name_lower in var_name_lower)):
+                    ergebnis.append((bv, var.name))
+                    logger.debug(f"Rückwärts-Match: BV {bv.id} Variable '{var.name}' -> neue BV {neue_bv.id}")
+        
+        logger.info(f"Rückwärts-Verlinkung: {len(ergebnis)} Variable(n) in anderen BVs können zu {neue_bv.id} verlinkt werden")
+        return ergebnis
+    
     def verlinke_variablen(
         self,
         berechnungsvorschrift: Berechnungsvorschrift
@@ -125,6 +165,33 @@ class BerechnungsvorschriftMatcher:
                    f"{len([v for v in aktualisierte_variablen if v.referenz_berechnungsvorschrift_id])} verlinkt, "
                    f"{len(mehrere_treffer)} mit mehreren Treffern")
         return berechnungsvorschrift, mehrere_treffer
+    
+    def verlinkung_aufheben(
+        self,
+        berechnungsvorschrift: Berechnungsvorschrift,
+        variablenname: str
+    ) -> Berechnungsvorschrift:
+        """
+        Hebt die Verlinkung einer Variable auf (Variable wird wieder primitiv).
+        
+        Args:
+            berechnungsvorschrift: Berechnungsvorschrift
+            variablenname: Name der Variable
+            
+        Returns:
+            Aktualisierte Berechnungsvorschrift
+        """
+        logger.info(f"Verlinkung aufheben: Variable '{variablenname}' in {berechnungsvorschrift.id}")
+        for var in berechnungsvorschrift.variablen:
+            if var.name == variablenname:
+                var.referenz_berechnungsvorschrift_id = None
+                var.ist_primitive = True
+                logger.debug(f"Variable '{variablenname}' ist wieder primitiv")
+                break
+        else:
+            logger.warning(f"Variable '{variablenname}' nicht in Berechnungsvorschrift {berechnungsvorschrift.id} gefunden")
+        
+        return berechnungsvorschrift
     
     def verlinke_variable_manuell(
         self,
