@@ -14,13 +14,13 @@ function formatiereFormelMitVariablen(formel, variablen, bvId) {
             const regex = new RegExp(`\\b${variable.name}\\b`, 'g');
             formatierteFormel = formatierteFormel.replace(
                 regex,
-                `<a href="berechnungsvorschrift.html?id=${variable.referenz_berechnungsvorschrift_id}" class="variable-link badge bg-primary">${variable.name}</a>`
+                `<a href="berechnungsvorschrift.html?id=${variable.referenz_berechnungsvorschrift_id}" class="variable-link badge bg-primary text-white">${variable.name}</a>`
             );
         } else {
             const regex = new RegExp(`\\b${variable.name}\\b`, 'g');
             formatierteFormel = formatierteFormel.replace(
                 regex,
-                `<span class="badge bg-secondary">${variable.name}</span>`
+                `<span class="badge bg-secondary text-white">${variable.name}</span>`
             );
         }
     });
@@ -58,8 +58,8 @@ function erstelleBerechnungsvorschriftCard(bv) {
                         <ul class="list-unstyled">
                             ${(bv.variablen || []).map(variable => 
                                 `<li>${variable.name} ${variable.ist_primitive ? 
-                                    '<span class="badge bg-secondary">primitiv</span>' : 
-                                    `<a href="berechnungsvorschrift.html?id=${variable.referenz_berechnungsvorschrift_id}" class="badge bg-primary">→ ${variable.referenz_berechnungsvorschrift_id.substring(0, 8)}...</a>`
+                                    '<span class="badge bg-secondary text-white">primitiv</span>' : 
+                                    `<a href="berechnungsvorschrift.html?id=${variable.referenz_berechnungsvorschrift_id}" class="badge bg-primary text-white">→ ${variable.referenz_berechnungsvorschrift_id.substring(0, 8)}...</a>`
                                 }</li>`
                             ).join('')}
                         </ul>

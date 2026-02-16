@@ -69,6 +69,12 @@
                         <div class="form-text">Die Formel wird automatisch in menschenlesbaren Pseudocode umgewandelt.</div>
                     </div>
 
+                    <div class="mb-3">
+                        <label for="kategorie" class="form-label">Kategorie (optional)</label>
+                        <input type="text" class="form-control" id="kategorie"
+                               placeholder="z.B. Gehalt, Kosten – leer lassen für LLM-Generierung">
+                    </div>
+
                     <button type="submit" class="btn btn-primary" id="submit-btn">
                         <span class="spinner-border spinner-border-sm d-none" id="loading-spinner"></span>
                         Berechnungsvorschrift generieren
@@ -116,18 +122,26 @@
             submitBtn.disabled = true;
             spinner.classList.remove('d-none');
             
-            // Zellendaten sammeln
+            // Zellendaten sammeln (Kategorie optional – wenn leer, erzeugt das LLM sie)
             const zelleneingabe = {
                 tabellenidentifikator: document.getElementById('tabellenidentifikator').value,
                 tabellenblatt: document.getElementById('tabellenblatt').value,
                 zellenidentifikator: document.getElementById('zellenidentifikator').value,
                 beschreibung: document.getElementById('beschreibung').value,
-                formel: document.getElementById('formel').value
+                formel: document.getElementById('formel').value,
+                kategorie: document.getElementById('kategorie').value.trim() || undefined
             };
             
             try {
                 // Berechnungsvorschrift erstellen
-                const berechnungsvorschrift = await api.erstelleBerechnungsvorschrift(zelleneingabe);
+                const response = await api.erstelleBerechnungsvorschrift(zelleneingabe);
+                // Wichtig: Die gerade erstellte BV explizit per ID laden und anzeigen.
+                // So wird garantiert die richtige angezeigt (nicht eine aus Rückwärts-Verlinkung o.ä.).
+                const berechnungsvorschrift = await api.ladeBerechnungsvorschrift(response.id);
+                // Create-Response enthält Zusatzinfos (Rückwärts-Verlinkungen, mehrere Treffer) –
+                // diese für die Anzeige übernehmen, da sie beim Nachladen per ID fehlen.
+                if (response.aktualisierte_verlinkungen) berechnungsvorschrift.aktualisierte_verlinkungen = response.aktualisierte_verlinkungen;
+                if (response.mehrere_treffer) berechnungsvorschrift.mehrere_treffer = response.mehrere_treffer;
                 
                 // Ergebnis anzeigen
                 zeigeBerechnungsvorschrift(berechnungsvorschrift);

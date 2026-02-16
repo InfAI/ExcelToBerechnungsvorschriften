@@ -9,15 +9,21 @@ body {
     margin-bottom: 1.5rem;
 }
 
-/* Variable-Links in Formeln */
+/* Variable-Links in Formeln – weiße Textfarbe für gute Lesbarkeit auf farbigem Badge-Hintergrund */
+.variable-link.badge,
+.badge.bg-primary.text-white,
+.badge.bg-secondary.text-white {
+    color: #fff !important;
+}
+
 .variable-link {
     cursor: pointer;
     text-decoration: underline;
-    color: #0d6efd;
+    color: #fff !important;
 }
 
 .variable-link:hover {
-    color: #0a58ca;
+    opacity: 0.9;
 }
 
 /* Abhängigkeitslisten */

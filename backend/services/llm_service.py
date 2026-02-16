@@ -80,6 +80,14 @@ class LLMService:
         system_prompt = self.prompt
         
         # User-Prompt mit Zellendaten erstellen
+        # Hinweis: Beschreibung wird unverändert übernommen (quelle.beschreibung).
+        # Kategorie: Nur angeben, wenn Nutzer sie eingegeben hat; sonst LLM generiert.
+        kategorie_hinweis = (
+            f"\nKategorie (vom Nutzer vorgegeben): {zelleneingabe.kategorie}\n"
+            "→ Verwende diese Kategorie in metadaten.kategorie."
+            if getattr(zelleneingabe, "kategorie", None) and str(zelleneingabe.kategorie).strip()
+            else ""
+        )
         user_prompt = f"""Bitte wandle folgende Excel-Zelle in eine Berechnungsvorschrift um:
 
 Tabellenidentifikator: {zelleneingabe.tabellenidentifikator}
@@ -87,6 +95,7 @@ Tabellenblatt: {zelleneingabe.tabellenblatt}
 Zellenidentifikator: {zelleneingabe.zellenidentifikator}
 Beschreibung: {zelleneingabe.beschreibung}
 Formel: {zelleneingabe.formel}
+{kategorie_hinweis}
 
 Beispiel für das gewünschte Format:
 {self.beispiel_text}
@@ -153,6 +162,9 @@ Bitte generiere die Berechnungsvorschrift im JSON-Format wie im Beispiel gezeigt
         
         # Metadaten konvertieren
         metadaten = Metadaten(**data["metadaten"])
+        # Wenn Nutzer Kategorie eingegeben hat, diese verwenden (LLM-Ausgabe überschreiben)
+        if getattr(zelleneingabe, "kategorie", None) and str(zelleneingabe.kategorie).strip():
+            metadaten.kategorie = zelleneingabe.kategorie.strip()
         
         # Quelle-Information erstellen
         from models.berechnungsvorschrift import Quelle
