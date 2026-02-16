@@ -78,7 +78,10 @@ class BerechnungsvorschriftMatcher:
         """
         Findet Berechnungsvorschriften, die eine primitive Variable haben, die auf die
         neu angelegte BV verlinkt werden kann (Rückwärts-Verlinkung).
-        Matching: Variable ist primitiv und Name stimmt mit neuer BV (Name oder Quelle-Beschreibung) überein.
+        
+        Matching (Priorität):
+        1. Variable.zellenidentifikator == neue_bv.quelle.zellenidentifikator (und gleiches Blatt)
+        2. Variable-Name stimmt mit neuer BV (Name oder Quelle-Beschreibung) überein.
         
         Returns:
             Liste von (Berechnungsvorschrift, Variablenname) die verlinkt werden können
@@ -90,7 +93,11 @@ class BerechnungsvorschriftMatcher:
         alle_bvs = self.rdf_service.lade_alle_berechnungsvorschriften()
         neue_name_lower = (neue_bv.name or "").strip().lower()
         neue_beschreibung_lower = (neue_bv.quelle.beschreibung or "").strip().lower() if neue_bv.quelle else ""
+        neue_zelle = (neue_bv.quelle.zellenidentifikator or "").strip() if neue_bv.quelle else ""
+        neue_tabelle = (neue_bv.quelle.tabellenidentifikator or "").strip() if neue_bv.quelle else ""
+        neue_blatt = (neue_bv.quelle.tabellenblatt or "").strip() if neue_bv.quelle else ""
         ergebnis = []
+        verlinkt_ids = set()  # Verhindert Dopplungen (BV, var.name)
         
         for bv in alle_bvs:
             if bv.id == neue_bv.id:
@@ -98,15 +105,34 @@ class BerechnungsvorschriftMatcher:
             for var in bv.variablen:
                 if not var.ist_primitive and var.referenz_berechnungsvorschrift_id:
                     continue
+                # 1. Priorität: Zellenidentifikator-Match (D7 in Variable ↔ D7 in neuer BV.quelle)
+                # Zusätzlich: Tabellenidentifikator, Tabellenblatt (hatQuelleTabellenblatt)
+                if neue_zelle and getattr(var, "zellenidentifikator", None):
+                    var_zelle = (var.zellenidentifikator or "").strip()
+                    if var_zelle and var_zelle.upper() == neue_zelle.upper():
+                        bv_tabelle = (bv.quelle.tabellenidentifikator or "").strip() if bv.quelle else ""
+                        bv_blatt = (bv.quelle.tabellenblatt or "").strip() if bv.quelle else ""
+                        if (not neue_tabelle or bv_tabelle == neue_tabelle) and \
+                           (not neue_blatt or bv_blatt == neue_blatt):
+                            key = (bv.id, var.name)
+                            if key not in verlinkt_ids:
+                                verlinkt_ids.add(key)
+                                ergebnis.append((bv, var.name))
+                                logger.debug(f"Rückwärts-Match (Zelle+Blatt): BV {bv.id} Variable '{var.name}' ({var_zelle}) -> neue BV {neue_bv.id} ({neue_zelle})")
+                            continue
+                
+                # 2. Fallback: Name/Symbol/Beschreibung-Match
                 var_name_lower = (var.name or "").strip().lower()
                 if not var_name_lower:
                     continue
-                # Variable passt, wenn Name mit neuer BV übereinstimmt oder mit Quell-Beschreibung
                 if (var_name_lower == neue_name_lower or
                     (neue_beschreibung_lower and var_name_lower in neue_beschreibung_lower) or
                     (neue_name_lower and neue_name_lower in var_name_lower)):
-                    ergebnis.append((bv, var.name))
-                    logger.debug(f"Rückwärts-Match: BV {bv.id} Variable '{var.name}' -> neue BV {neue_bv.id}")
+                    key = (bv.id, var.name)
+                    if key not in verlinkt_ids:
+                        verlinkt_ids.add(key)
+                        ergebnis.append((bv, var.name))
+                        logger.debug(f"Rückwärts-Match (Name): BV {bv.id} Variable '{var.name}' -> neue BV {neue_bv.id}")
         
         logger.info(f"Rückwärts-Verlinkung: {len(ergebnis)} Variable(n) in anderen BVs können zu {neue_bv.id} verlinkt werden")
         return ergebnis
@@ -117,9 +143,12 @@ class BerechnungsvorschriftMatcher:
     ) -> Tuple[Berechnungsvorschrift, List[Tuple[str, List[Berechnungsvorschrift]]]]:
         """
         Verlinkt Variablen zu bestehenden Berechnungsvorschriften.
-        Gilt für alle Variablen (aus Zellreferenz oder Tabellenspalte): Matching nach Name/Symbol
-        in Metadaten; Tabellenspalten-Variablen (z.B. Arbeitsstunden_pro_Jahr) können auf eine BV
-        verlinkt werden, die diese Spalte/Reihe repräsentiert.
+        
+        Matching-Strategie (Priorität):
+        1. Variable mit zellenidentifikator (z.B. D7): Suche BV, deren Quelle die Zelle D7 ist
+           (quelle.tabellenidentifikator + tabellenblatt + zellenidentifikator = D7). D7 und D8
+           liegen im gleichen Blatt wie die Ausgabezelle (E8).
+        2. Variable ohne zellenidentifikator (Tabellenspalte): Fallback auf Name/Symbol in Metadaten.
         
         Args:
             berechnungsvorschrift: Berechnungsvorschrift mit unverlinkten Variablen
@@ -131,14 +160,32 @@ class BerechnungsvorschriftMatcher:
         aktualisierte_variablen = []
         mehrere_treffer = []
         
+        # Kontext der Ausgabezelle (z.B. E8) – D7, D8 liegen im gleichen Blatt
+        tabellenidentifikator = berechnungsvorschrift.quelle.tabellenidentifikator if berechnungsvorschrift.quelle else None
+        tabellenblatt = berechnungsvorschrift.quelle.tabellenblatt if berechnungsvorschrift.quelle else None
+        
         for var in berechnungsvorschrift.variablen:
             logger.debug(f"Suche passende Berechnungsvorschrift für Variable: {var.name}")
-            # Suche nach passenden Berechnungsvorschriften für diese Variable
-            # Wir suchen nach Name oder Symbol in Metadaten
-            passende = self.rdf_service.suche_nach_metadaten(
-                name=var.name,
-                symbol=var.name  # Symbol könnte auch passen
-            )
+            passende = []
+            
+            # 1. Priorität: Zellenidentifikator + Tabellenidentifikator + Tabellenblatt
+            if getattr(var, "zellenidentifikator", None) and var.zellenidentifikator.strip():
+                passende = self.rdf_service.suche_nach_quelle(
+                    tabellenidentifikator=tabellenidentifikator,
+                    tabellenblatt=tabellenblatt,
+                    zellenidentifikator=var.zellenidentifikator.strip()
+                )
+                if passende:
+                    logger.debug(f"Variable '{var.name}' (Zelle {var.zellenidentifikator}): {len(passende)} Treffer via Zellenidentifikator")
+            
+            # 2. Fallback: Name/Symbol in Metadaten (Tabellenspalten, keine Zellreferenz)
+            if not passende:
+                passende = self.rdf_service.suche_nach_metadaten(
+                    name=var.name,
+                    symbol=var.name  # Symbol könnte auch passen
+                )
+                if passende:
+                    logger.debug(f"Variable '{var.name}': {len(passende)} Treffer via Metadaten (Name/Symbol)")
             
             # Wenn genau eine Übereinstimmung gefunden wurde
             if len(passende) == 1:
@@ -150,14 +197,12 @@ class BerechnungsvorschriftMatcher:
             # Wenn mehrere Übereinstimmungen gefunden wurden
             elif len(passende) > 1:
                 logger.info(f"Variable '{var.name}': {len(passende)} Treffer gefunden - Benutzer muss wählen")
-                # Benutzer muss wählen - Variable bleibt unverlinkt
                 mehrere_treffer.append((var.name, passende))
-                aktualisierte_variablen.append(var)  # Unverlinkt lassen
+                aktualisierte_variablen.append(var)
             
             # Wenn keine Übereinstimmung gefunden wurde
             else:
                 logger.debug(f"Variable '{var.name}': Keine Treffer - bleibt primitiv")
-                # Variable bleibt primitiv
                 var.ist_primitive = True
                 aktualisierte_variablen.append(var)
         

@@ -4,6 +4,7 @@ Format: BEISPIEL-EINGABE (Zelleneingabe) gefolgt von GEWÜNSCHTES JSON-OUTPUT.
 Im Output nur die Felder name, formel, variablen, metadaten. Kein referenz_berechnungsvorschrift_id; jede Variable mit ist_primitive: true.
 Jede Wertquelle (Zellreferenz oder Tabellenspalte, die Werte liefert) = eine Variable. formel nur mit Variablennamen aus variablen[] (exakt); keine werttragenden Begriffe ohne Variable.
 Variablennamen im formel-String müssen exakt mit variablen[].name übereinstimmen.
+Zellreferenzen: zellenidentifikator setzen (z.B. "D7", "A9"). Tabellenspalten: kein zellenidentifikator. Matching nutzt Tabellenidentifikator, Tabellenblatt und Zellenidentifikator.
 
 ---
 
@@ -23,7 +24,8 @@ GEWÜNSCHTES JSON-OUTPUT:
   "variablen": [
     {
       "name": "Jahresnettogehalt",
-      "ist_primitive": true
+      "ist_primitive": true,
+      "zellenidentifikator": "B1"
     }
   ],
   "metadaten": {
@@ -52,22 +54,10 @@ GEWÜNSCHTES JSON-OUTPUT:
   "name": "Durchschnitt der Quartalsumsätze",
   "formel": "(Quartalsumsatz_1 + Quartalsumsatz_2 + Quartalsumsatz_3 + Quartalsumsatz_4) / 4",
   "variablen": [
-    {
-      "name": "Quartalsumsatz_1",
-      "ist_primitive": true
-    },
-    {
-      "name": "Quartalsumsatz_2",
-      "ist_primitive": true
-    },
-    {
-      "name": "Quartalsumsatz_3",
-      "ist_primitive": true
-    },
-    {
-      "name": "Quartalsumsatz_4",
-      "ist_primitive": true
-    }
+    {"name": "Quartalsumsatz_1", "ist_primitive": true, "zellenidentifikator": "B1"},
+    {"name": "Quartalsumsatz_2", "ist_primitive": true, "zellenidentifikator": "B2"},
+    {"name": "Quartalsumsatz_3", "ist_primitive": true, "zellenidentifikator": "B3"},
+    {"name": "Quartalsumsatz_4", "ist_primitive": true, "zellenidentifikator": "B4"}
   ],
   "metadaten": {
     "kategorie": "Umsatz",
@@ -95,18 +85,9 @@ GEWÜNSCHTES JSON-OUTPUT:
   "name": "Gesamtkosten aus Material und Lohn",
   "formel": "Materialkosten + Lohnkosten + Nebenkosten",
   "variablen": [
-    {
-      "name": "Materialkosten",
-      "ist_primitive": true
-    },
-    {
-      "name": "Lohnkosten",
-      "ist_primitive": true
-    },
-    {
-      "name": "Nebenkosten",
-      "ist_primitive": true
-    }
+    {"name": "Materialkosten", "ist_primitive": true, "zellenidentifikator": "A1"},
+    {"name": "Lohnkosten", "ist_primitive": true, "zellenidentifikator": "B1"},
+    {"name": "Nebenkosten", "ist_primitive": true, "zellenidentifikator": "C1"}
   ],
   "metadaten": {
     "kategorie": "Kosten",
@@ -136,14 +117,8 @@ GEWÜNSCHTES JSON-OUTPUT:
   "name": "Umsatz pro Einheit",
   "formel": "Umsatz / Menge",
   "variablen": [
-    {
-      "name": "Umsatz",
-      "ist_primitive": true
-    },
-    {
-      "name": "Menge",
-      "ist_primitive": true
-    }
+    {"name": "Umsatz", "ist_primitive": true, "zellenidentifikator": "A1"},
+    {"name": "Menge", "ist_primitive": true, "zellenidentifikator": "B1"}
   ],
   "metadaten": {
     "kategorie": "Umsatz",
@@ -171,18 +146,18 @@ GEWÜNSCHTES JSON-OUTPUT:
   "name": "Jahresgesamtumsatz aus Monatswerten",
   "formel": "Monatsumsatz_1 + Monatsumsatz_2 + Monatsumsatz_3 + Monatsumsatz_4 + Monatsumsatz_5 + Monatsumsatz_6 + Monatsumsatz_7 + Monatsumsatz_8 + Monatsumsatz_9 + Monatsumsatz_10 + Monatsumsatz_11 + Monatsumsatz_12",
   "variablen": [
-    {"name": "Monatsumsatz_1", "ist_primitive": true},
-    {"name": "Monatsumsatz_2", "ist_primitive": true},
-    {"name": "Monatsumsatz_3", "ist_primitive": true},
-    {"name": "Monatsumsatz_4", "ist_primitive": true},
-    {"name": "Monatsumsatz_5", "ist_primitive": true},
-    {"name": "Monatsumsatz_6", "ist_primitive": true},
-    {"name": "Monatsumsatz_7", "ist_primitive": true},
-    {"name": "Monatsumsatz_8", "ist_primitive": true},
-    {"name": "Monatsumsatz_9", "ist_primitive": true},
-    {"name": "Monatsumsatz_10", "ist_primitive": true},
-    {"name": "Monatsumsatz_11", "ist_primitive": true},
-    {"name": "Monatsumsatz_12", "ist_primitive": true}
+    {"name": "Monatsumsatz_1", "ist_primitive": true, "zellenidentifikator": "B1"},
+    {"name": "Monatsumsatz_2", "ist_primitive": true, "zellenidentifikator": "B2"},
+    {"name": "Monatsumsatz_3", "ist_primitive": true, "zellenidentifikator": "B3"},
+    {"name": "Monatsumsatz_4", "ist_primitive": true, "zellenidentifikator": "B4"},
+    {"name": "Monatsumsatz_5", "ist_primitive": true, "zellenidentifikator": "B5"},
+    {"name": "Monatsumsatz_6", "ist_primitive": true, "zellenidentifikator": "B6"},
+    {"name": "Monatsumsatz_7", "ist_primitive": true, "zellenidentifikator": "B7"},
+    {"name": "Monatsumsatz_8", "ist_primitive": true, "zellenidentifikator": "B8"},
+    {"name": "Monatsumsatz_9", "ist_primitive": true, "zellenidentifikator": "B9"},
+    {"name": "Monatsumsatz_10", "ist_primitive": true, "zellenidentifikator": "B10"},
+    {"name": "Monatsumsatz_11", "ist_primitive": true, "zellenidentifikator": "B11"},
+    {"name": "Monatsumsatz_12", "ist_primitive": true, "zellenidentifikator": "B12"}
   ],
   "metadaten": {
     "kategorie": "Umsatz",
@@ -213,14 +188,8 @@ GEWÜNSCHTES JSON-OUTPUT:
   "name": "Durchschnittliche Arbeitsstunden pro Jahr nach Ausbildungsstand",
   "formel": "Summe(Arbeitsstunden_pro_Jahr, gefiltert nach Ausbildungsstand) / Anzahl(gefiltert nach Ausbildungsstand)",
   "variablen": [
-    {
-      "name": "Ausbildungsstand",
-      "ist_primitive": true
-    },
-    {
-      "name": "Arbeitsstunden_pro_Jahr",
-      "ist_primitive": true
-    }
+    {"name": "Ausbildungsstand", "ist_primitive": true, "zellenidentifikator": "A9"},
+    {"name": "Arbeitsstunden_pro_Jahr", "ist_primitive": true}
   ],
   "metadaten": {
     "kategorie": "Personal",
@@ -230,7 +199,7 @@ GEWÜNSCHTES JSON-OUTPUT:
   }
 }
 
-Erklärung: IFERROR wird weggelassen (nur der erste Parameter wird umgewandelt). A9 → Variable "Ausbildungsstand"; Tabellenspalte MAJahr1[Arbeitsstunden/ Jahr] (Summenbereich) → Variable "Arbeitsstunden_pro_Jahr". Beide Variablennamen erscheinen exakt so in formel. Kein werttragender Text ohne zugehörige Variable.
+Erklärung: IFERROR wird weggelassen (nur der erste Parameter wird umgewandelt). A9 → Variable "Ausbildungsstand" mit zellenidentifikator: "A9"; Tabellenspalte MAJahr1[Arbeitsstunden/ Jahr] (Summenbereich) → Variable "Arbeitsstunden_pro_Jahr" ohne zellenidentifikator (keine Einzelzelle). Beide Variablennamen erscheinen exakt so in formel.
 
 ---
 
@@ -252,18 +221,9 @@ GEWÜNSCHTES JSON-OUTPUT:
   "name": "Lohnwert aus Tabelle Lohn für Ausbildungsstand und Spaltenkopf",
   "formel": "Wert aus Lohn_Tabelle an Zeile(Ausbildungsstand) und Spalte(Spaltenkopf)",
   "variablen": [
-    {
-      "name": "Lohn_Tabelle",
-      "ist_primitive": true
-    },
-    {
-      "name": "Ausbildungsstand",
-      "ist_primitive": true
-    },
-    {
-      "name": "Spaltenkopf",
-      "ist_primitive": true
-    }
+    {"name": "Lohn_Tabelle", "ist_primitive": true},
+    {"name": "Ausbildungsstand", "ist_primitive": true, "zellenidentifikator": "H9"},
+    {"name": "Spaltenkopf", "ist_primitive": true, "zellenidentifikator": "I4"}
   ],
   "operation": "index_lookup",
   "metadaten": {
@@ -274,4 +234,35 @@ GEWÜNSCHTES JSON-OUTPUT:
   }
 }
 
-Erklärung: Lohn[] (Tabelle) → Variable "Lohn_Tabelle"; H9 → "Ausbildungsstand"; I4 → "Spaltenkopf". Reihenfolge der Variablen ist fest: (1) Tabelle, (2) Zeilenkriterium (H9), (3) Spaltenkriterium (I4) – für Auswertung mit echten Werten. operation = "index_lookup" kennzeichnet diese BV für 2D-Tabellenlookup. Alle drei Variablennamen erscheinen exakt in formel.
+Erklärung: Lohn[] (Tabelle) → Variable "Lohn_Tabelle"; H9 → "Ausbildungsstand"; I4 → "Spaltenkopf". Reihenfolge der Variablen ist fest: (1) Tabelle, (2) Zeilenkriterium (H9), (3) Spaltenkriterium (I4) – für Auswertung mit echten Werten. operation = "index_lookup" kennzeichnet diese BV für 2D-Tabellenlookup. Alle drei Variablennamen erscheinen exakt in formel. Zellreferenzen H9 und I4 erhalten zellenidentifikator für Matching.
+
+---
+
+BEISPIEL 8 – IFERROR mit Division (D7/D8)
+
+Zelle E8 berechnet D7/D8. Variablen stammen aus D7 und D8. Das Matching findet vorhandene Berechnungsvorschriften anhand von Tabellenidentifikator, Tabellenblatt und Zellenidentifikator (quelle).
+
+BEISPIEL-EINGABE:
+Tabellenidentifikator: Tabelle1
+Tabellenblatt: Sheet1
+Zellenidentifikator: E8
+Beschreibung: Verhältnis berechnen
+Formel: =IFERROR(D7/D8," ")
+
+GEWÜNSCHTES JSON-OUTPUT:
+{
+  "name": "Verhältnis Dividend zu Divisor",
+  "formel": "Dividend / Divisor",
+  "variablen": [
+    {"name": "Dividend", "ist_primitive": true, "zellenidentifikator": "D7"},
+    {"name": "Divisor", "ist_primitive": true, "zellenidentifikator": "D8"}
+  ],
+  "metadaten": {
+    "kategorie": "Berechnung",
+    "symbol": "VD",
+    "datentyp": "decimal",
+    "einheit": ""
+  }
+}
+
+Erklärung: IFERROR wird weggelassen. D7 → Variable "Dividend" mit zellenidentifikator: "D7"; D8 → Variable "Divisor" mit zellenidentifikator: "D8". Matching: BVs mit gleichem Tabellenidentifikator, Tabellenblatt und Zellenidentifikator (D7/D8) werden verlinkt.

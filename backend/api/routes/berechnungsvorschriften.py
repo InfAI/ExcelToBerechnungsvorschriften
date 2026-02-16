@@ -53,6 +53,7 @@ async def erstelle_berechnungsvorschrift(request: BerechnungsvorschriftErstellen
         
         # Variablen verlinken
         logger.debug("Verlinke Variablen zu bestehenden Berechnungsvorschriften...")
+        logger.debug(f"Gebildete Berechnungsvorschrift: {berechnungsvorschrift}")
         berechnungsvorschrift, mehrere_treffer = matcher.verlinke_variablen(berechnungsvorschrift)
         if mehrere_treffer:
             logger.info(f"Mehrere Treffer gefunden für {len(mehrere_treffer)} Variablen")

@@ -305,6 +305,71 @@ class RDFService:
             logger.error(f"Fehler bei Suche nach Metadaten: {type(e).__name__}: {e}", exc_info=True)
             return []
     
+    def suche_nach_quelle(
+        self,
+        tabellenidentifikator: Optional[str] = None,
+        tabellenblatt: Optional[str] = None,
+        zellenidentifikator: Optional[str] = None
+    ) -> List[Berechnungsvorschrift]:
+        """
+        Sucht Berechnungsvorschriften nach Quelle (Quellzelle).
+        Matching über hatQuelleTabellenidentifikator, hatQuelleTabellenblatt, hatQuelleZellenidentifikator.
+        
+        Args:
+            tabellenidentifikator: Tabellenidentifikator (optional)
+            tabellenblatt: Tabellenblatt (optional)
+            zellenidentifikator: Zellenidentifikator (z.B. D7, A9) – erforderlich
+            
+        Returns:
+            Liste der gefundenen Berechnungsvorschriften
+        """
+        if not zellenidentifikator:
+            return []
+        
+        def escape_sparql_string(s):
+            return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+        
+        conditions = [
+            f'?bv bv:hatQuelleZellenidentifikator "{escape_sparql_string(zellenidentifikator.strip())}"'
+        ]
+        if tabellenidentifikator:
+            conditions.append(f'?bv bv:hatQuelleTabellenidentifikator "{escape_sparql_string(tabellenidentifikator)}"')
+        if tabellenblatt:
+            conditions.append(f'?bv bv:hatQuelleTabellenblatt "{escape_sparql_string(tabellenblatt)}"')
+        
+        where_clause = " . ".join(conditions)
+        namespace_iri = get_namespace_iri()
+        
+        query = f"""
+        PREFIX bv: <{namespace_iri}>
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        
+        SELECT DISTINCT ?bv_id
+        WHERE {{
+            ?bv rdf:type bv:Berechnungsvorschrift .
+            {where_clause} .
+            BIND(REPLACE(STR(?bv), ".*berechnungsvorschrift/", "") AS ?bv_id)
+        }}
+        """
+        
+        client = self._get_sparql_client()
+        client.setQuery(query)
+        
+        try:
+            results = client.queryAndConvert()
+            berechnungsvorschriften = []
+            if "results" in results and "bindings" in results["results"]:
+                for result in results["results"]["bindings"]:
+                    bv_id = result["bv_id"]["value"]
+                    bv = self.lade_berechnungsvorschrift(bv_id)
+                    if bv:
+                        berechnungsvorschriften.append(bv)
+            logger.debug(f"Suche nach Quelle {zellenidentifikator} (Blatt={tabellenblatt}): {len(berechnungsvorschriften)} Treffer")
+            return berechnungsvorschriften
+        except Exception as e:
+            logger.error(f"Fehler bei Suche nach Quelle: {type(e).__name__}: {e}", exc_info=True)
+            return []
+    
     def finde_verwendet_in(self, bv_id: str) -> List[Berechnungsvorschrift]:
         """
         Findet alle Berechnungsvorschriften, die diese Berechnungsvorschrift referenzieren

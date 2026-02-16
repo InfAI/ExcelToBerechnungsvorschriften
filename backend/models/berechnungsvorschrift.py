@@ -16,6 +16,9 @@ class Variable(BaseModel):
     - Ohne Referenz (ist_primitive=True): impliziter Verweis auf einen Wert/Eingabe (Zelle oder Spalte);
       keine eigene BV-Entität erforderlich.
     Der name muss exakt mit dem Variablennamen im formel-String übereinstimmen (Verlinkbarkeit, Auswertung).
+    zellenidentifikator: Excel-Zellreferenz (z.B. D7, D8), aus der der Wert stammt – erforderlich
+    für Matching mit vorhandenen Berechnungsvorschriften (BV mit quelle.zellenidentifikator=D7).
+    Bei Tabellenspalten (z.B. MAJahr1[Arbeitsstunden/Jahr]) bleibt zellenidentifikator leer.
     """
     
     name: str = Field(..., description="Gut lesbarer Variablenname; muss im formel-String vorkommen")
@@ -26,6 +29,12 @@ class Variable(BaseModel):
     ist_primitive: bool = Field(
         True, 
         description="True wenn keine Referenz zu einer anderen Berechnungsvorschrift (einfacher Wert)"
+    )
+    zellenidentifikator: Optional[str] = Field(
+        None,
+        description="Excel-Zellreferenz (z.B. D7, A9), aus der der Variablenwert stammt. "
+                    "Wird für Matching genutzt: BV mit quelle.zellenidentifikator=D7 wird verlinkt. "
+                    "Bei Tabellenspalten leer lassen."
     )
 
 
@@ -78,7 +87,8 @@ class Berechnungsvorschrift(BaseModel):
                     {
                         "name": "Jahresnettogehalt",
                         "referenz_berechnungsvorschrift_id": "uuid-xyz",
-                        "ist_primitive": False
+                        "ist_primitive": False,
+                        "zellenidentifikator": "B1"
                     }
                 ],
                 "metadaten": {

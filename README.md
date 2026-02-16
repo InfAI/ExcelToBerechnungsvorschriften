@@ -91,6 +91,13 @@ Die Services sind verfügbar unter:
 - Backend API: http://localhost:8000
 - Fuseki Admin: http://localhost:3030
 
+## Todo
+
+- UI: Nach erstellen einer Berechnungsvorschrift wird eine andere unter dem Formular für neue angezeigt. Es sollte die gerade erstellte zu sehen sein.
+- Die Beschreibung die der Nutzer eingibt, soll so belassen werden.
+- UI: Kategorie soll optional eingebbar sein und nur durch das LLM erzeugt werden wenn es nicht befüllt wurde vom Nutzer.
+- UI: Variablen in Formeln der Berechnugnsvorschriften haben dieselbe Textfarbe wie ihr Hintergrund - weiß ist besser als Textfarbe.
+
 ## Hinweise
 
 - Die OpenAI API Key muss in der `.env` Datei gesetzt werden

@@ -107,6 +107,10 @@ class JSONRDFConverter:
                       Literal(var.ist_primitive, datatype=XSD.boolean)))
             graph.add((bv_uri, property_uri("hatVariable"), var_uri))
             
+            # Zellenidentifikator der Quellzelle (z.B. D7, A9) – für Matching
+            if getattr(var, "zellenidentifikator", None):
+                graph.add((var_uri, property_uri("referenziertZelle"), Literal(var.zellenidentifikator)))
+            
             # Referenz zu anderer Berechnungsvorschrift (falls vorhanden)
             if var.referenz_berechnungsvorschrift_id and not var.ist_primitive:
                 logger.debug(f"Variable '{var.name}' referenziert Berechnungsvorschrift {var.referenz_berechnungsvorschrift_id}")
@@ -213,10 +217,15 @@ class JSONRDFConverter:
                 ref_id = str(ref_uri).split("/")[-1]
                 ist_primitive = False
             
+            # Zellenidentifikator der Quellzelle (für Matching beim erneuten Verlinken)
+            zellenidentifikator_val = graph.value(var_uri, property_uri("referenziertZelle"))
+            zellenidentifikator = str(zellenidentifikator_val) if zellenidentifikator_val else None
+            
             variablen.append(Variable(
                 name=var_name,
                 referenz_berechnungsvorschrift_id=ref_id,
-                ist_primitive=ist_primitive
+                ist_primitive=ist_primitive,
+                zellenidentifikator=zellenidentifikator
             ))
             if ref_id:
                 logger.debug(f"Variable '{var_name}' extrahiert mit Referenz zu {ref_id}")

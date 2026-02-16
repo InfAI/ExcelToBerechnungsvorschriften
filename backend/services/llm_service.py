@@ -140,12 +140,13 @@ Bitte generiere die Berechnungsvorschrift im JSON-Format wie im Beispiel gezeigt
         """Konvertiert ein Dictionary in ein Berechnungsvorschrift-Model"""
         from datetime import datetime
         
-        # Variablen konvertieren
+        # Variablen konvertieren (inkl. zellenidentifikator für Zellreferenzen – Matching)
         variablen = [
             Variable(
                 name=var["name"],
                 referenz_berechnungsvorschrift_id=None,  # Wird später vom Matcher gesetzt
-                ist_primitive=var.get("ist_primitive", True)
+                ist_primitive=var.get("ist_primitive", True),
+                zellenidentifikator=var.get("zellenidentifikator")  # D7, A9 etc. – für Matching mit BVs aus dieser Zelle
             )
             for var in data.get("variablen", [])
         ]
