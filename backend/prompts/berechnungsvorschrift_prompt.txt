@@ -9,8 +9,9 @@ Gib NUR gültiges JSON zurück, ohne Einleitung oder Erklärung.
 
 EINGABE (du erhältst):
 - Tabellenidentifikator, Tabellenblatt, Zellenidentifikator: Kontext der Zelle
-- Beschreibung: inhaltliche Bedeutung der Zelle (nutzen für Namen und Metadaten)
+- Beschreibung: inhaltliche Bedeutung der Zelle – wird als Name der BV verwendet; Kontext für Variablennamen und Metadaten
 - Formel: Excel-Formel mit Zellreferenzen (z.B. =A1+B1, =IFERROR(A1/B1;"-"))
+- Kategorie: optional – wenn vom Nutzer vorgegeben, muss in metadaten.kategorie übernommen werden
 
 ---
 
@@ -52,7 +53,7 @@ REGELN FÜR DEN PSEUDOCODE (formel):
 AUSGABE (nur dieses JSON-Schema, keine weiteren Felder):
 
 {
-  "name": "Kurzer, beschreibender Name der Berechnungsvorschrift (aus Beschreibung/Formel)",
+  "name": "Wird ignoriert – die Nutzer-Beschreibung wird als Name verwendet. Beliebiges Platzhalter-JSON (z.B. \"N/A\") setzen.",
   "formel": "Menschenlesbarer Pseudocode. Nur Variablennamen aus variablen[] (exakt so) und Operatoren/Strukturwörter (Summe, gefiltert nach, etc.); keine zusätzlichen werttragenden Begriffe ohne Variable.",
   "variablen": [
     {
@@ -75,5 +76,5 @@ WICHTIG:
 - Jede Variable mit "name" und "ist_primitive": true. Bei Zellreferenzen zusätzlich "zellenidentifikator" (z.B. "D7", "A9") setzen – für Matching mit vorhandenen Berechnungsvorschriften. Tabellenspalten haben keinen zellenidentifikator.
 - Jede Wertquelle (Zellreferenz oder Tabellenspalte, die Werte liefert) = eine Variable. Im formel-String nur diese Variablennamen (exakt) verwenden; keine werttragenden Begriffe ohne zugehörige Variable.
 - Bei INDEX/MATCH-Formeln: "operation": "index_lookup" setzen und Variablen in dieser Reihenfolge ausgeben: (1) Tabelle, (2) Zeilenkriterium (z.B. H9), (3) Spaltenkriterium (z.B. I4). Sonst "operation" weglassen.
-- name: aus Beschreibung/Kontext ableiten; formel: nur Pseudocode mit Variablennamen; metadaten: aus Kontext ableiten.
+- name: wird ignoriert (System nutzt Nutzer-Beschreibung als Name); formel: nur Pseudocode mit Variablennamen; metadaten: aus Kontext ableiten.
 - Die Reihenfolge der Variablen ist beliebig (außer bei index_lookup: siehe oben); die Namen müssen in formel exakt vorkommen.

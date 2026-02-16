@@ -1,7 +1,7 @@
 # Beispiele: Excel-Formel → Berechnungsvorschrift (JSON)
 
 Format: BEISPIEL-EINGABE (Zelleneingabe) gefolgt von GEWÜNSCHTES JSON-OUTPUT.
-Im Output nur die Felder name, formel, variablen, metadaten. Kein referenz_berechnungsvorschrift_id; jede Variable mit ist_primitive: true.
+Im Output: name (Platzhalter "N/A" – wird ignoriert, die Nutzer-Beschreibung wird als Name verwendet), formel, variablen, metadaten. Kein referenz_berechnungsvorschrift_id; jede Variable mit ist_primitive: true.
 Jede Wertquelle (Zellreferenz oder Tabellenspalte, die Werte liefert) = eine Variable. formel nur mit Variablennamen aus variablen[] (exakt); keine werttragenden Begriffe ohne Variable.
 Variablennamen im formel-String müssen exakt mit variablen[].name übereinstimmen.
 Zellreferenzen: zellenidentifikator setzen (z.B. "D7", "A9"). Tabellenspalten: kein zellenidentifikator. Matching nutzt Tabellenidentifikator, Tabellenblatt und Zellenidentifikator.
@@ -19,7 +19,7 @@ Formel: =B1/12
 
 GEWÜNSCHTES JSON-OUTPUT:
 {
-  "name": "monatliches Nettogehalt",
+  "name": "N/A",
   "formel": "Jahresnettogehalt / 12",
   "variablen": [
     {
@@ -51,7 +51,7 @@ Formel: =AVERAGE(B1,B2,B3,B4)
 
 GEWÜNSCHTES JSON-OUTPUT:
 {
-  "name": "Durchschnitt der Quartalsumsätze",
+  "name": "N/A",
   "formel": "(Quartalsumsatz_1 + Quartalsumsatz_2 + Quartalsumsatz_3 + Quartalsumsatz_4) / 4",
   "variablen": [
     {"name": "Quartalsumsatz_1", "ist_primitive": true, "zellenidentifikator": "B1"},
@@ -82,7 +82,7 @@ Formel: =A1+B1+C1
 
 GEWÜNSCHTES JSON-OUTPUT:
 {
-  "name": "Gesamtkosten aus Material und Lohn",
+  "name": "N/A",
   "formel": "Materialkosten + Lohnkosten + Nebenkosten",
   "variablen": [
     {"name": "Materialkosten", "ist_primitive": true, "zellenidentifikator": "A1"},
@@ -114,7 +114,7 @@ Formel: =IFERROR(A1/B1;"-")
 
 GEWÜNSCHTES JSON-OUTPUT:
 {
-  "name": "Umsatz pro Einheit",
+  "name": "N/A",
   "formel": "Umsatz / Menge",
   "variablen": [
     {"name": "Umsatz", "ist_primitive": true, "zellenidentifikator": "A1"},
@@ -143,7 +143,7 @@ Formel: =SUMME(B1:B12)
 
 GEWÜNSCHTES JSON-OUTPUT:
 {
-  "name": "Jahresgesamtumsatz aus Monatswerten",
+  "name": "N/A",
   "formel": "Monatsumsatz_1 + Monatsumsatz_2 + Monatsumsatz_3 + Monatsumsatz_4 + Monatsumsatz_5 + Monatsumsatz_6 + Monatsumsatz_7 + Monatsumsatz_8 + Monatsumsatz_9 + Monatsumsatz_10 + Monatsumsatz_11 + Monatsumsatz_12",
   "variablen": [
     {"name": "Monatsumsatz_1", "ist_primitive": true, "zellenidentifikator": "B1"},
@@ -185,7 +185,7 @@ Formel: =IFERROR(SUMIFS(MAJahr1[Arbeitsstunden/ Jahr],MAJahr1[Ausbildungsstand],
 
 GEWÜNSCHTES JSON-OUTPUT:
 {
-  "name": "Durchschnittliche Arbeitsstunden pro Jahr nach Ausbildungsstand",
+  "name": "N/A",
   "formel": "Summe(Arbeitsstunden_pro_Jahr, gefiltert nach Ausbildungsstand) / Anzahl(gefiltert nach Ausbildungsstand)",
   "variablen": [
     {"name": "Ausbildungsstand", "ist_primitive": true, "zellenidentifikator": "A9"},
@@ -218,7 +218,7 @@ Formel: =INDEX(Lohn[],MATCH(H9,Lohn[Ausbildungsstand],0),MATCH(I4,Lohn[#headers]
 
 GEWÜNSCHTES JSON-OUTPUT:
 {
-  "name": "Lohnwert aus Tabelle Lohn für Ausbildungsstand und Spaltenkopf",
+  "name": "N/A",
   "formel": "Wert aus Lohn_Tabelle an Zeile(Ausbildungsstand) und Spalte(Spaltenkopf)",
   "variablen": [
     {"name": "Lohn_Tabelle", "ist_primitive": true},
@@ -251,7 +251,7 @@ Formel: =IFERROR(D7/D8," ")
 
 GEWÜNSCHTES JSON-OUTPUT:
 {
-  "name": "Verhältnis Dividend zu Divisor",
+  "name": "N/A",
   "formel": "Dividend / Divisor",
   "variablen": [
     {"name": "Dividend", "ist_primitive": true, "zellenidentifikator": "D7"},

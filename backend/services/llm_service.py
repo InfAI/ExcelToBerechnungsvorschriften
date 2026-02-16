@@ -178,9 +178,13 @@ Bitte generiere die Berechnungsvorschrift im JSON-Format wie im Beispiel gezeigt
         # Operation (optional) – z.B. "index_lookup" bei INDEX/MATCH; für Auswertung mit echten Werten
         operation = data.get("operation")
         
+        # Name: Immer die vom Benutzer im UI eingegebene Beschreibung verwenden.
+        # Das LLM muss den Namen nicht mehr erzeugen – spart Tokens und gibt dem Nutzer Kontrolle.
+        name = (zelleneingabe.beschreibung or "").strip() or data.get("name", "")
+        
         # Berechnungsvorschrift erstellen
         berechnungsvorschrift = Berechnungsvorschrift(
-            name=data["name"],
+            name=name,
             formel=data["formel"],
             variablen=variablen,
             metadaten=metadaten,

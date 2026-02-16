@@ -184,7 +184,7 @@ class RDFService:
             # Zu Berechnungsvorschrift konvertieren
             logger.debug(f"Konvertiere RDF-Graph zu Berechnungsvorschrift für {bv_id}")
             bv = self.converter.rdf_to_berechnungsvorschrift(graph, bv_id)
-            logger.info(f"Berechnungsvorschrift {bv_id} erfolgreich geladen: Name={bv.name}")
+            #logger.info(f"Berechnungsvorschrift {bv_id} erfolgreich geladen: Name={bv.name}")
             return bv
         except Exception as e:
             logger.error(f"Fehler beim Laden der Berechnungsvorschrift {bv_id}: {type(e).__name__}: {e}", exc_info=True)
