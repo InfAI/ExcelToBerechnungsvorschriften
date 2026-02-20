@@ -41,7 +41,7 @@ class JSONRDFConverter:
         if not bv.id:
             raise ValueError("Berechnungsvorschrift muss eine ID haben")
         
-        logger.debug(f"Erstelle RDF-Graph für {bv.id}")
+        logger.info(f"Konvertiere Berechnungsvorschrift zu RDF: {bv.id} ({bv.name})")
         graph = Graph()
         graph.bind("bv", BV)
         graph.bind("rdf", RDF)
@@ -104,7 +104,7 @@ class JSONRDFConverter:
         # RDF-Objekt angelegt; Verlinkung über referenziertBerechnungsvorschrift.
         # Beliebig viele Variablen pro BV werden unterstützt. Der Name wird als Literal (hatName)
         # gespeichert; die Variable-URI nutzt eine URI-sichere Codierung (rdf_helper.variable_uri).
-        logger.debug(f"Füge {len(bv.variablen)} Variablen zum RDF-Graph hinzu...")
+        logger.debug(f"Füge {len(bv.variablen)} Variablen zum RDF-Graph hinzu")
         var_type = URIRef(f"{namespace_iri}Variable")
         for var in bv.variablen:
             var_uri = variable_uri(bv.id, var.name)
@@ -127,7 +127,7 @@ class JSONRDFConverter:
                 ref_uri = berechnungsvorschrift_uri(var.referenz_berechnungsvorschrift_id)
                 graph.add((var_uri, property_uri("referenziertBerechnungsvorschrift"), ref_uri))
         
-        logger.debug(f"RDF-Konvertierung abgeschlossen: {len(graph)} Triples erstellt für {bv.id}")
+        logger.info(f"RDF-Konvertierung abgeschlossen: {len(graph)} Triples für {bv.id}")
         return graph
     
     def rdf_to_berechnungsvorschrift(self, graph: Graph, bv_id: str) -> Berechnungsvorschrift:
@@ -143,6 +143,7 @@ class JSONRDFConverter:
         """
         from models.berechnungsvorschrift import Variable, Metadaten, Quelle
         
+        logger.info(f"Konvertiere RDF zu Berechnungsvorschrift: {bv_id}")
         bv_uri = berechnungsvorschrift_uri(bv_id)
         
         # Grunddaten extrahieren
@@ -209,11 +210,10 @@ class JSONRDFConverter:
             )
         
         # Variablen extrahieren (beliebig viele; jede Wertquelle = eine Variable)
-        logger.debug(f"Extrahiere Variablen aus RDF-Graph für {bv_id}...")
         variablen = []
         hat_variable_uri = property_uri("hatVariable")
         var_uris = list(graph.objects(bv_uri, hat_variable_uri))
-        logger.debug(f"Gefunden: {len(var_uris)} Variable(n) in RDF-Graph")
+        logger.debug(f"Extrahiere {len(var_uris)} Variablen aus RDF-Graph")
         for var_uri in var_uris:
             var_name_val = graph.value(var_uri, property_uri("hatName"))
             if not var_name_val:
@@ -248,13 +248,8 @@ class JSONRDFConverter:
                 zellenidentifikator=zellenidentifikator,
                 tabellenblatt_referenz=tabellenblatt_referenz
             ))
-            if ref_id:
-                logger.debug(f"Variable '{var_name}' extrahiert mit Referenz zu {ref_id}")
-            else:
-                logger.debug(f"Variable '{var_name}' extrahiert (primitiv: {ist_primitive})")
         
-        logger.debug(f"Erstelle Berechnungsvorschrift-Objekt aus RDF-Daten: {bv_id}")
-        # Berechnungsvorschrift erstellen
+        # Berechnungsvorschrift aus extrahierten Daten zusammenbauen
         bv = Berechnungsvorschrift(
             id=bv_id,
             name=name,
@@ -269,5 +264,5 @@ class JSONRDFConverter:
             operation=operation,
             excel_identifikator=excel_identifikator
         )
-        logger.debug(f"RDF-zu-JSON Konvertierung abgeschlossen: ID={bv.id}, Name={bv.name}, Variablen={len(bv.variablen)}")
+        logger.info(f"RDF-zu-JSON abgeschlossen: {bv.id} ({bv.name}, {len(bv.variablen)} Variablen)")
         return bv

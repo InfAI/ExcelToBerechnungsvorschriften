@@ -34,11 +34,10 @@ class RDFService:
         self.fuseki_user = os.getenv("FUSEKI_USER", "admin")
         self.fuseki_password = os.getenv("FUSEKI_PASSWORD", "")
         
-        # Debug: Prüfe ob Credentials geladen wurden (ohne Passwort zu loggen)
         if self.fuseki_user and self.fuseki_password:
-            logger.info(f"RDFService initialisiert - SPARQL: {self.sparql_endpoint}, Update: {self.update_endpoint}, User: {self.fuseki_user}, Password gesetzt: {'Ja' if self.fuseki_password else 'Nein'}")
+            logger.info(f"RDFService initialisiert: {self.sparql_endpoint}")
         else:
-            logger.warning(f"RDFService initialisiert ohne vollständige Credentials - User: '{self.fuseki_user}', Password gesetzt: {'Ja' if self.fuseki_password else 'Nein'}")
+            logger.warning(f"RDFService initialisiert ohne vollständige Credentials - User: '{self.fuseki_user}'")
     
     def _get_sparql_client(self) -> SPARQLWrapper:
         """Erstellt einen SPARQL-Client mit Authentifizierung"""
@@ -47,7 +46,6 @@ class RDFService:
         # Credentials setzen, falls vorhanden
         if self.fuseki_user and self.fuseki_password:
             client.setCredentials(self.fuseki_user, self.fuseki_password)
-            logger.debug(f"SPARQL-Client erstellt mit Credentials für User: {self.fuseki_user}")
         else:
             logger.warning("SPARQL-Client erstellt OHNE Credentials - Authentifizierung wird fehlschlagen")
         return client
@@ -60,7 +58,6 @@ class RDFService:
         # Credentials setzen, falls vorhanden
         if self.fuseki_user and self.fuseki_password:
             client.setCredentials(self.fuseki_user, self.fuseki_password)
-            logger.debug(f"Update-Client erstellt mit Credentials für User: {self.fuseki_user}")
         else:
             logger.warning("Update-Client erstellt OHNE Credentials - Authentifizierung wird fehlschlagen")
         return client
@@ -75,20 +72,17 @@ class RDFService:
         if not bv.id:
             raise ValueError("Berechnungsvorschrift muss eine ID haben")
         
-        logger.info(f"Speichere Berechnungsvorschrift: ID={bv.id}, Name={bv.name}, Version={bv.version}")
+        logger.info(f"Speichere Berechnungsvorschrift: {bv.id} ({bv.name})")
         
         # Zuerst alte Version löschen (falls vorhanden) - nur wenn ID existiert
         try:
-            logger.debug(f"Lösche alte Version der Berechnungsvorschrift {bv.id} (falls vorhanden)")
+            logger.debug(f"Lösche alte Version von {bv.id} (falls vorhanden)")
             self.loesche_berechnungsvorschrift(bv.id)
-            logger.debug(f"Alte Version von {bv.id} erfolgreich gelöscht")
         except Exception as e:
-            logger.debug(f"Keine alte Version von {bv.id} gefunden oder Fehler beim Löschen (wird ignoriert): {type(e).__name__}: {e}")
+            logger.debug(f"Keine alte Version von {bv.id} oder Löschen fehlgeschlagen (wird ignoriert): {type(e).__name__}: {e}")
         
         # Zu RDF konvertieren
-        logger.debug(f"Konvertiere Berechnungsvorschrift {bv.id} zu RDF")
         graph = self.converter.berechnungsvorschrift_to_rdf(bv)
-        logger.debug(f"RDF-Graph erstellt: {len(graph)} Triples")
         
         # Verwende RDF-Graph Serialisierung für zuverlässigere Einfügung
         # RDF-Graph zu N-Triples serialisieren
@@ -102,12 +96,12 @@ class RDFService:
         """
         
         # Update ausführen
-        logger.debug(f"Führe SPARQL INSERT für {bv.id} aus (N-Triples Format)")
+        logger.debug(f"Führe SPARQL INSERT für {bv.id} aus")
         client = self._get_update_client()
         client.setQuery(insert_query)
         try:
             client.query()
-            logger.info(f"Berechnungsvorschrift {bv.id} erfolgreich gespeichert (N-Triples)")
+            logger.info(f"Berechnungsvorschrift {bv.id} gespeichert")
         except Exception as e:
             logger.warning(f"N-Triples INSERT fehlgeschlagen für {bv.id}: {type(e).__name__}: {e}. Versuche Turtle-Format...")
             # Wenn N-Triples nicht funktioniert, versuche Turtle
@@ -126,7 +120,7 @@ class RDFService:
             client.setQuery(insert_query)
             try:
                 client.query()
-                logger.info(f"Berechnungsvorschrift {bv.id} erfolgreich gespeichert (Turtle Format)")
+                logger.info(f"Berechnungsvorschrift {bv.id} gespeichert (Turtle Fallback)")
             except Exception as e2:
                 logger.error(f"SPARQL INSERT fehlgeschlagen für {bv.id} (beide Formate): {type(e2).__name__}: {e2}")
                 raise
@@ -141,7 +135,7 @@ class RDFService:
         Returns:
             Berechnungsvorschrift oder None
         """
-        logger.debug(f"Lade Berechnungsvorschrift: ID={bv_id}")
+        logger.debug(f"Lade Berechnungsvorschrift: {bv_id}")
         namespace_iri = get_namespace_iri()
         bv_uri_full = berechnungsvorschrift_uri(bv_id)
         query = f"""
@@ -178,13 +172,11 @@ class RDFService:
             
             # Prüfe ob Graph leer ist
             if len(graph) == 0:
-                logger.debug(f"Keine Daten für Berechnungsvorschrift {bv_id} gefunden")
+                logger.debug(f"Keine RDF-Daten für {bv_id} gefunden")
                 return None
             
             # Zu Berechnungsvorschrift konvertieren
-            logger.debug(f"Konvertiere RDF-Graph zu Berechnungsvorschrift für {bv_id}")
             bv = self.converter.rdf_to_berechnungsvorschrift(graph, bv_id)
-            #logger.info(f"Berechnungsvorschrift {bv_id} erfolgreich geladen: Name={bv.name}")
             return bv
         except Exception as e:
             logger.error(f"Fehler beim Laden der Berechnungsvorschrift {bv_id}: {type(e).__name__}: {e}", exc_info=True)
@@ -197,6 +189,7 @@ class RDFService:
         Returns:
             Liste aller Berechnungsvorschriften
         """
+        logger.info("Lade alle Berechnungsvorschriften")
         namespace_iri = get_namespace_iri()
         # Escape für Regex: Namespace muss escaped werden für REPLACE
         # Extrahiere die ID aus der URI (alles nach dem letzten /)
@@ -225,6 +218,7 @@ class RDFService:
                     if bv:
                         berechnungsvorschriften.append(bv)
             
+            logger.debug(f"Lade alle: {len(berechnungsvorschriften)} Berechnungsvorschriften geladen")
             return berechnungsvorschriften
         except Exception as e:
             logger.error(f"Fehler beim Laden aller Berechnungsvorschriften: {type(e).__name__}: {e}", exc_info=True)
@@ -271,6 +265,7 @@ class RDFService:
         if not conditions:
             return self.lade_alle_berechnungsvorschriften()
         
+        logger.info(f"Suche nach Metadaten: name={name}, kategorie={kategorie}, symbol={symbol}")
         where_clause = " . ".join(conditions)
         namespace_iri = get_namespace_iri()
         
@@ -326,6 +321,7 @@ class RDFService:
         if not zellenidentifikator:
             return []
         
+        logger.info(f"Suche nach Quelle: zelle={zellenidentifikator}, blatt={tabellenblatt}")
         def escape_sparql_string(s):
             return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
         
@@ -364,7 +360,7 @@ class RDFService:
                     bv = self.lade_berechnungsvorschrift(bv_id)
                     if bv:
                         berechnungsvorschriften.append(bv)
-            logger.debug(f"Suche nach Quelle {zellenidentifikator} (Blatt={tabellenblatt}): {len(berechnungsvorschriften)} Treffer")
+            logger.debug(f"Suche nach Quelle: {len(berechnungsvorschriften)} Treffer")
             return berechnungsvorschriften
         except Exception as e:
             logger.error(f"Fehler bei Suche nach Quelle: {type(e).__name__}: {e}", exc_info=True)
@@ -384,6 +380,7 @@ class RDFService:
         if not excel_identifikator or not str(excel_identifikator).strip():
             return []
         
+        logger.info(f"Suche nach Excel-Identifikator: {excel_identifikator}")
         def escape_sparql_string(s):
             return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
         
@@ -416,7 +413,7 @@ class RDFService:
                     bv = self.lade_berechnungsvorschrift(bv_id)
                     if bv:
                         berechnungsvorschriften.append(bv)
-            logger.debug(f"Suche nach Excel-Identifikator {identifier}: {len(berechnungsvorschriften)} Treffer")
+            logger.debug(f"Suche Excel-Identifikator: {len(berechnungsvorschriften)} Treffer")
             return berechnungsvorschriften
         except Exception as e:
             logger.error(f"Fehler bei Suche nach Excel-Identifikator: {type(e).__name__}: {e}", exc_info=True)
@@ -432,6 +429,7 @@ class RDFService:
         Returns:
             Liste der referenzierenden Berechnungsvorschriften
         """
+        logger.info(f"Finde 'verwendet in' für Berechnungsvorschrift: {bv_id}")
         namespace_iri = get_namespace_iri()
         bv_uri_full = berechnungsvorschrift_uri(bv_id)
         query = f"""
@@ -476,6 +474,7 @@ class RDFService:
         Returns:
             Liste der referenzierten Berechnungsvorschriften
         """
+        logger.info(f"Finde 'verwendet' (Referenzen) für Berechnungsvorschrift: {bv_id}")
         bv = self.lade_berechnungsvorschrift(bv_id)
         if not bv:
             return []
@@ -496,8 +495,7 @@ class RDFService:
         Args:
             bv_id: ID der Berechnungsvorschrift
         """
-        logger.info(f"Lösche Berechnungsvorschrift: ID={bv_id}")
-        logger.debug(f"Update-Endpoint: {self.update_endpoint}")
+        logger.info(f"Lösche Berechnungsvorschrift: {bv_id}")
         
         namespace_iri = get_namespace_iri()
         bv_uri_full = berechnungsvorschrift_uri(bv_id)
@@ -520,25 +518,20 @@ class RDFService:
         }}
         """
         
-        logger.debug(f"SPARQL DELETE Query für {bv_id} erstellt")
+        logger.debug(f"Führe SPARQL DELETE für {bv_id} aus")
         client = self._get_update_client()
-        logger.debug(f"SPARQL Update-Client erstellt, Methode: POST, Request-Methode: urlencoded")
         client.setQuery(query)
         
         try:
-            logger.debug(f"Führe SPARQL DELETE für {bv_id} aus...")
             client.query()
             logger.info(f"Berechnungsvorschrift {bv_id} erfolgreich gelöscht")
         except Exception as e:
             error_type = type(e).__name__
             error_msg = str(e)
             logger.error(
-                f"Fehler beim Löschen der Berechnungsvorschrift {bv_id}: "
-                f"{error_type}: {error_msg}. "
-                f"Update-Endpoint: {self.update_endpoint}"
+                f"Fehler beim Löschen der Berechnungsvorschrift {bv_id}: {error_type}: {error_msg}",
+                exc_info=True
             )
-            # Zusätzliche Debug-Informationen
-            logger.debug(f"Vollständige Exception-Details für {bv_id}:", exc_info=True)
             raise
     
     def hat_referenzen(self, bv_id: str) -> bool:
@@ -551,8 +544,5 @@ class RDFService:
         Returns:
             True wenn Referenzen existieren, sonst False
         """
-        logger.debug(f"Prüfe ob {bv_id} Referenzen hat...")
         referenzen = self.finde_verwendet_in(bv_id)
-        hat_refs = len(referenzen) > 0
-        logger.debug(f"{bv_id} hat {'Referenzen' if hat_refs else 'keine Referenzen'}")
-        return hat_refs
+        return len(referenzen) > 0
