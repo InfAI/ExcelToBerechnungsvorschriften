@@ -69,7 +69,7 @@ class BerechnungsvorschriftMatcher:
                 bv.quelle.beschreibung.strip().lower() == beschreibung.strip().lower()):
                 passende.append(bv)
         
-        logger.info(f"Gefunden: {len(passende)} passende Berechnungsvorschrift(en)")
+        logger.debug(f"finde_passende_berechnungsvorschriften: {len(passende)} Treffer")
         return passende
     
     def finde_bvs_mit_passender_variable(
@@ -89,11 +89,8 @@ class BerechnungsvorschriftMatcher:
             Liste von (Berechnungsvorschrift, Variablenname) die verlinkt werden können
         """
         if not neue_bv.id:
-            logger.debug("Rückwärts-Verlinkung: neue BV hat keine ID - überspringe")
             return []
-        # Benötigt Quelle (für Zell-Match) oder excel_identifikator (für Identifikator-Match)
         if not neue_bv.quelle and not getattr(neue_bv, "excel_identifikator", None):
-            logger.debug("Rückwärts-Verlinkung: neue BV hat weder Quelle noch excel_identifikator - überspringe")
             return []
         
         alle_bvs = self.rdf_service.lade_alle_berechnungsvorschriften()
@@ -129,7 +126,7 @@ class BerechnungsvorschriftMatcher:
                             if key not in verlinkt_ids:
                                 verlinkt_ids.add(key)
                                 ergebnis.append((bv, var.name))
-                                logger.debug(f"Rückwärts-Match (Zelle+Blatt): BV {bv.id} Variable '{var.name}' ({var_zelle}, Blatt={such_blatt}) -> neue BV {neue_bv.id} ({neue_zelle}, Blatt={neue_blatt})")
+                                logger.debug(f"Rückwärts-Match (Zelle): BV {bv.id} Var '{var.name}' -> {neue_bv.id}")
                             continue
                 
                 # 2. Priorität: Excel-Identifikator-Match (Variable.name == neue_bv.excel_identifikator)
@@ -140,7 +137,7 @@ class BerechnungsvorschriftMatcher:
                         if key not in verlinkt_ids:
                             verlinkt_ids.add(key)
                             ergebnis.append((bv, var.name))
-                            logger.debug(f"Rückwärts-Match (Excel-Identifikator): BV {bv.id} Variable '{var.name}' -> neue BV {neue_bv.id} (excel_identifikator={neue_excel_id})")
+                            logger.debug(f"Rückwärts-Match (Excel-ID): BV {bv.id} Var '{var.name}' -> {neue_bv.id}")
                         continue
                 
                 # 3. Fallback: Name/Symbol/Beschreibung-Match
@@ -154,9 +151,9 @@ class BerechnungsvorschriftMatcher:
                     if key not in verlinkt_ids:
                         verlinkt_ids.add(key)
                         ergebnis.append((bv, var.name))
-                        logger.debug(f"Rückwärts-Match (Name): BV {bv.id} Variable '{var.name}' -> neue BV {neue_bv.id}")
+                        logger.debug(f"Rückwärts-Match (Name): BV {bv.id} Var '{var.name}' -> {neue_bv.id}")
         
-        logger.info(f"Rückwärts-Verlinkung: {len(ergebnis)} Variable(n) in anderen BVs können zu {neue_bv.id} verlinkt werden")
+        logger.debug(f"finde_bvs_mit_passender_variable: {len(ergebnis)} Kandidaten für {neue_bv.id}")
         return ergebnis
     
     def verlinke_variablen(
@@ -187,8 +184,8 @@ class BerechnungsvorschriftMatcher:
         tabellenidentifikator = berechnungsvorschrift.quelle.tabellenidentifikator if berechnungsvorschrift.quelle else None
         tabellenblatt = berechnungsvorschrift.quelle.tabellenblatt if berechnungsvorschrift.quelle else None
         
+        logger.info(f"Verlinke Variablen: {berechnungsvorschrift.id}")
         for var in berechnungsvorschrift.variablen:
-            logger.debug(f"Suche passende Berechnungsvorschrift für Variable: {var.name}")
             passende = []
             
             # 1. Priorität: Zellenidentifikator + Tabellenidentifikator + Tabellenblatt
@@ -204,7 +201,7 @@ class BerechnungsvorschriftMatcher:
                     zellenidentifikator=var.zellenidentifikator.strip()
                 )
                 if passende:
-                    logger.debug(f"Variable '{var.name}' (Zelle {var.zellenidentifikator}, Blatt={such_tabellenblatt}): {len(passende)} Treffer via Zellenidentifikator")
+                    logger.debug(f"Var '{var.name}' (Zelle {var.zellenidentifikator}): {len(passende)} Treffer")
             
             # 2. Priorität: Excel-Identifikator (Variable.name passt zu Excel-Identifikator in formel_original
             # oder var.name hat Excel-Identifikator-Muster wie _1_Wert)
@@ -219,7 +216,7 @@ class BerechnungsvorschriftMatcher:
                 if is_excel_id:
                     passende = self.rdf_service.suche_nach_excel_identifikator(var.name)
                     if passende:
-                        logger.debug(f"Variable '{var.name}' (Excel-Identifikator): {len(passende)} Treffer via excel_identifikator")
+                        logger.debug(f"Var '{var.name}' (Excel-ID): {len(passende)} Treffer")
             
             # 3. Fallback: Name/Symbol in Metadaten (Tabellenspalten, keine Zellreferenz)
             if not passende:
@@ -228,33 +225,29 @@ class BerechnungsvorschriftMatcher:
                     symbol=var.name  # Symbol könnte auch passen
                 )
                 if passende:
-                    logger.debug(f"Variable '{var.name}': {len(passende)} Treffer via Metadaten (Name/Symbol)")
+                    logger.debug(f"Var '{var.name}' (Metadaten): {len(passende)} Treffer")
             
-            # Wenn genau eine Übereinstimmung gefunden wurde
             if len(passende) == 1:
-                logger.debug(f"Variable '{var.name}' automatisch verlinkt zu {passende[0].id}")
+                logger.debug(f"Var '{var.name}' -> {passende[0].id}")
                 var.referenz_berechnungsvorschrift_id = passende[0].id
                 var.ist_primitive = False
                 aktualisierte_variablen.append(var)
             
-            # Wenn mehrere Übereinstimmungen gefunden wurden
             elif len(passende) > 1:
-                logger.info(f"Variable '{var.name}': {len(passende)} Treffer gefunden - Benutzer muss wählen")
+                logger.info(f"Var '{var.name}': {len(passende)} Treffer - Benutzer muss wählen")
                 mehrere_treffer.append((var.name, passende))
                 aktualisierte_variablen.append(var)
             
-            # Wenn keine Übereinstimmung gefunden wurde
             else:
-                logger.debug(f"Variable '{var.name}': Keine Treffer - bleibt primitiv")
+                logger.debug(f"Var '{var.name}': keine Treffer")
                 var.ist_primitive = True
                 aktualisierte_variablen.append(var)
         
         # Aktualisierte Berechnungsvorschrift erstellen
         berechnungsvorschrift.variablen = aktualisierte_variablen
         
-        logger.info(f"Variablen-Verlinkung abgeschlossen für {berechnungsvorschrift.id}: "
-                   f"{len([v for v in aktualisierte_variablen if v.referenz_berechnungsvorschrift_id])} verlinkt, "
-                   f"{len(mehrere_treffer)} mit mehreren Treffern")
+        verlinkt = len([v for v in aktualisierte_variablen if v.referenz_berechnungsvorschrift_id])
+        logger.info(f"Verlinkung abgeschlossen: {berechnungsvorschrift.id} - {verlinkt} verlinkt, {len(mehrere_treffer)} mit Mehrfach-Treffern")
         return berechnungsvorschrift, mehrere_treffer
     
     def verlinkung_aufheben(
@@ -272,12 +265,11 @@ class BerechnungsvorschriftMatcher:
         Returns:
             Aktualisierte Berechnungsvorschrift
         """
-        logger.info(f"Verlinkung aufheben: Variable '{variablenname}' in {berechnungsvorschrift.id}")
+        logger.debug(f"Verlinkung aufheben: {variablenname} in {berechnungsvorschrift.id}")
         for var in berechnungsvorschrift.variablen:
             if var.name == variablenname:
                 var.referenz_berechnungsvorschrift_id = None
                 var.ist_primitive = True
-                logger.debug(f"Variable '{variablenname}' ist wieder primitiv")
                 break
         else:
             logger.warning(f"Variable '{variablenname}' nicht in Berechnungsvorschrift {berechnungsvorschrift.id} gefunden")
@@ -301,12 +293,11 @@ class BerechnungsvorschriftMatcher:
         Returns:
             Aktualisierte Berechnungsvorschrift
         """
-        logger.info(f"Manuelle Verlinkung: Variable '{variablenname}' in {berechnungsvorschrift.id} -> {referenz_id}")
+        logger.debug(f"Manuelle Verlinkung: {variablenname} in {berechnungsvorschrift.id} -> {referenz_id}")
         for var in berechnungsvorschrift.variablen:
             if var.name == variablenname:
                 var.referenz_berechnungsvorschrift_id = referenz_id
                 var.ist_primitive = False
-                logger.debug(f"Variable '{variablenname}' erfolgreich verlinkt")
                 break
         else:
             logger.warning(f"Variable '{variablenname}' nicht in Berechnungsvorschrift {berechnungsvorschrift.id} gefunden")
@@ -328,20 +319,14 @@ class BerechnungsvorschriftMatcher:
         Returns:
             True wenn zirkuläre Abhängigkeit erkannt wird, sonst False
         """
-        # Prüfe, ob die referenzierte Berechnungsvorschrift diese Berechnungsvorschrift referenziert
         if not berechnungsvorschrift.id:
-            logger.debug(f"Neue Berechnungsvorschrift ohne ID - keine Zirkularitätsprüfung möglich")
-            return False  # Neue Berechnungsvorschrift, noch keine ID
-        
-        logger.debug(f"Lade referenzierte Berechnungsvorschrift {referenz_id} für Zirkularitätsprüfung...")
-        # Lade die referenzierte Berechnungsvorschrift
-        referenz_bv = self.rdf_service.lade_berechnungsvorschrift(referenz_id)
-        if not referenz_bv:
-            logger.debug(f"Referenzierte Berechnungsvorschrift {referenz_id} nicht gefunden - keine Zirkularität")
             return False
         
-        # Prüfe rekursiv, ob die referenzierte Berechnungsvorschrift diese referenziert
-        logger.debug(f"Starte rekursive Zirkularitätsprüfung: {referenz_bv.id} -> {berechnungsvorschrift.id}")
+        referenz_bv = self.rdf_service.lade_berechnungsvorschrift(referenz_id)
+        if not referenz_bv:
+            return False
+        
+        logger.debug(f"Zirkularitätsprüfung: {berechnungsvorschrift.id} <-> {referenz_id}")
         result = self._pruefe_rekursiv_zirkulaer(referenz_bv, berechnungsvorschrift.id, set())
         if result:
             logger.warning(f"Zirkuläre Abhängigkeit erkannt: {berechnungsvorschrift.id} <-> {referenz_id}")
@@ -365,24 +350,18 @@ class BerechnungsvorschriftMatcher:
             True wenn zirkuläre Abhängigkeit gefunden wird
         """
         if bv.id == ziel_id:
-            logger.debug(f"Zirkuläre Abhängigkeit gefunden: {bv.id} == {ziel_id}")
-            return True  # Zirkuläre Abhängigkeit gefunden
+            return True
         
         if bv.id in besucht:
-            logger.debug(f"Bereits besucht: {bv.id} - keine Zirkularität in diesem Pfad")
-            return False  # Bereits besucht, keine Zirkularität hier
+            return False
         
         besucht.add(bv.id)
-        logger.debug(f"Prüfe Berechnungsvorschrift {bv.id} (Ziel: {ziel_id}, Besucht: {len(besucht)} Knoten)")
         
-        # Prüfe alle Variablen
         for var in bv.variablen:
             if var.referenz_berechnungsvorschrift_id and not var.ist_primitive:
-                logger.debug(f"Prüfe Variable '{var.name}' -> {var.referenz_berechnungsvorschrift_id}")
                 ref_bv = self.rdf_service.lade_berechnungsvorschrift(var.referenz_berechnungsvorschrift_id)
                 if ref_bv:
                     if self._pruefe_rekursiv_zirkulaer(ref_bv, ziel_id, besucht):
                         return True
         
-        logger.debug(f"Keine Zirkularität gefunden für {bv.id} -> {ziel_id}")
         return False
