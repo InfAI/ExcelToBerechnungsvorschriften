@@ -182,10 +182,12 @@ Bitte generiere die Berechnungsvorschrift im JSON-Format wie im Beispiel gezeigt
         # Das LLM muss den Namen nicht mehr erzeugen – spart Tokens und gibt dem Nutzer Kontrolle.
         name = (zelleneingabe.beschreibung or "").strip() or data.get("name", "")
         
-        # Berechnungsvorschrift erstellen
+        # Berechnungsvorschrift erstellen.
+        # formel_original: originale Excel-Formel aus der Eingabe – nur zur Information, nicht bearbeitbar
         berechnungsvorschrift = Berechnungsvorschrift(
             name=name,
             formel=data["formel"],
+            formel_original=zelleneingabe.formel,
             variablen=variablen,
             metadaten=metadaten,
             quelle=quelle,

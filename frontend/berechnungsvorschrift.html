@@ -55,6 +55,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <p><strong>Formel:</strong> <span id="bv-formel"></span></p>
+                            <p id="bv-formel-original-row" class="d-none"><strong>Originale Excel-Formel:</strong> <code id="bv-formel-original" class="bg-light px-2 py-1 rounded"></code></p>
                             <p><strong>Version:</strong> <span id="bv-version"></span></p>
                             <p id="bv-operation-row" class="d-none"><strong>Auswertungstyp:</strong> <span id="bv-operation"></span></p>
                             <p><strong>Erstellt am:</strong> <span id="bv-erstellt-am"></span></p>
@@ -248,6 +249,14 @@
             // Grunddaten
             document.getElementById('bv-name').textContent = bv.name;
             document.getElementById('bv-formel').innerHTML = formatiereFormelMitVariablen(bv.formel, bv.variablen || [], bv.id);
+            // Originale Excel-Formel – nur informativ, nicht bearbeitbar
+            const formelOriginalRow = document.getElementById('bv-formel-original-row');
+            if (bv.formel_original) {
+                document.getElementById('bv-formel-original').textContent = bv.formel_original;
+                formelOriginalRow.classList.remove('d-none');
+            } else {
+                formelOriginalRow.classList.add('d-none');
+            }
             document.getElementById('bv-version').textContent = bv.version;
             // Auswertungstyp (operation) nur anzeigen, wenn gesetzt (z.B. index_lookup)
             const operationRow = document.getElementById('bv-operation-row');

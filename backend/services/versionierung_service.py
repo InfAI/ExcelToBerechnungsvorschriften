@@ -56,6 +56,11 @@ class VersionierungService:
         # ID bleibt gleich (gleiche Berechnungsvorschrift, neue Version)
         aktualisierte_bv.id = alte_bv.id
         
+        # formel_original ist nur informativ und nicht bearbeitbar – bei Update beibehalten, falls nicht mitgesendet
+        if not getattr(aktualisierte_bv, "formel_original", None) and getattr(alte_bv, "formel_original", None):
+            aktualisierte_bv.formel_original = alte_bv.formel_original
+            logger.debug("formel_original aus alter Version übernommen")
+        
         logger.info(f"Neue Version erfolgreich erstellt: {aktualisierte_bv.id}, Version {aktualisierte_bv.version}")
         return aktualisierte_bv
     

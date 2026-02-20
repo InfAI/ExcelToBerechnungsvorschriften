@@ -65,6 +65,11 @@ class Berechnungsvorschrift(BaseModel):
         ..., 
         description="Menschenlesbarer Pseudocode (keine Excel-Syntax, keine Kommentare)"
     )
+    # Originale Excel-Formel aus der Eingabe – nur zur Information, nicht bearbeitbar
+    formel_original: Optional[str] = Field(
+        None,
+        description="Originale Excel-Formel aus der Zelleneingabe (z.B. =A1+B1*C1). Nur informativ, wird beim Bearbeiten nicht geändert."
+    )
     variablen: List[Variable] = Field(default_factory=list, description="Liste der Variablen")
     metadaten: Metadaten = Field(..., description="Metadaten")
     quelle: Optional[Quelle] = Field(None, description="Quelle-Information zur ursprünglichen Zelle")

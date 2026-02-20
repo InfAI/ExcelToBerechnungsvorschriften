@@ -59,6 +59,9 @@ class JSONRDFConverter:
         graph.add((bv_uri, property_uri("hatName"), Literal(bv.name)))
         graph.add((bv_uri, property_uri("hatFormel"), Literal(bv.formel)))
         graph.add((bv_uri, property_uri("hatVersion"), Literal(bv.version, datatype=XSD.integer)))
+        # Originale Excel-Formel (optional, nur informativ)
+        if getattr(bv, "formel_original", None):
+            graph.add((bv_uri, property_uri("hatFormelOriginal"), Literal(bv.formel_original)))
         
         # Operation (optional) – bestimmt die Auswertungsregel bei Berechnung mit echten Werten
         if getattr(bv, "operation", None):
@@ -141,6 +144,9 @@ class JSONRDFConverter:
         
         formel_val = graph.value(bv_uri, property_uri("hatFormel"))
         formel = str(formel_val) if formel_val else ""
+        
+        formel_original_val = graph.value(bv_uri, property_uri("hatFormelOriginal"))
+        formel_original = str(formel_original_val) if formel_original_val else None
         
         version_val = graph.value(bv_uri, property_uri("hatVersion"))
         version = int(version_val) if version_val else 1
@@ -238,6 +244,7 @@ class JSONRDFConverter:
             id=bv_id,
             name=name,
             formel=formel,
+            formel_original=formel_original,
             variablen=variablen,
             metadaten=metadaten,
             quelle=quelle,
