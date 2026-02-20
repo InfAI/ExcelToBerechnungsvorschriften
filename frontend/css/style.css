@@ -39,3 +39,46 @@ code {
     border-radius: 0.25rem;
     font-size: 0.9em;
 }
+
+/* Zellen-Übersicht: Zellenidentifikator als optisches Merkmal (z.B. A1, D7) */
+.zellen-badge {
+    display: inline-block;
+    min-width: 3em;
+    padding: 0.35rem 0.6rem;
+    font-family: 'Consolas', 'Monaco', 'Ubuntu Mono', monospace;
+    font-size: 0.95em;
+    font-weight: 600;
+    text-align: center;
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    color: #fff;
+    border-radius: 0.35rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
+}
+
+/* Zellen-Übersicht: Eintrag-Zeile – Badge links, Beschreibung Mitte, Details rechts */
+.zellen-eintrag {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+.zellen-eintrag .zellen-badge {
+    flex-shrink: 0;
+}
+.zellen-eintrag .zellen-beschreibung {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: break-word;
+}
+.zellen-eintrag .zellen-details-btn {
+    flex-shrink: 0;
+}
+
+/* Optischer Trenner zwischen Excel-Spalten in der Zellen-Übersicht */
+.zellen-spaltentrenner {
+    min-height: 0;
+    padding: 0.4rem 1rem;
+    border-top: 1px dashed rgba(0, 0, 0, 0.2);
+    background-color: #e9ecef;
+}

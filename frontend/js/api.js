@@ -111,7 +111,7 @@ const api = {
      * Verlinkt eine Variable manuell
      */
     async verlinkeVariable(bvId, variablenname, referenzId) {
-        return this.request(`/berechnungsvorschriften/${bvId}/variablen/${variablenname}/verlinken?referenz_id=${referenzId}`, {
+        return this.request(`/berechnungsvorschriften/${bvId}/variablen/${encodeURIComponent(variablenname)}/verlinken?referenz_id=${encodeURIComponent(referenzId)}`, {
             method: 'POST',
         });
     },

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zellen-Übersicht – Berechnungsvorschriften nach Tabelle</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">Excel zu Berechnungsvorschriften</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Neue Berechnungsvorschrift</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="berechnungsvorschriften.html">Alle Berechnungsvorschriften</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="zellen-uebersicht.html">Zellen-Übersicht</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Zellen-Übersicht</h1>
+            <a href="index.html" class="btn btn-primary">Neue Berechnungsvorschrift</a>
+        </div>
+
+        <div class="alert alert-info mb-4" role="alert">
+            <strong>Zweck:</strong> Diese Ansicht gruppiert Berechnungsvorschriften nach Tabellenidentifikator und Tabellenblatt.
+            So erkennen Sie auf einen Blick, welche Zellen bereits erfasst wurden – ideal zum Pausieren und Wiederaufnehmen des Übertragens.
+        </div>
+
+        <div id="zellen-container">
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Lädt...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        /**
+         * Parst Excel-Zellenreferenz (z.B. A1, D7, AA123) zu {col, row} für Sortierung.
+         * col: numerisch (A=1, B=2, ..., Z=26, AA=27, ...)
+         * row: Zeilennummer
+         */
+        function parseExcelZelle(ref) {
+            if (!ref || typeof ref !== 'string') return { col: 0, row: 0 };
+            const m = ref.trim().match(/^([A-Za-z]+)([0-9]+)$/);
+            if (!m) return { col: 0, row: 0 };
+            const colStr = m[1].toUpperCase();
+            const row = parseInt(m[2], 10) || 0;
+            let col = 0;
+            for (let i = 0; i < colStr.length; i++) {
+                col = col * 26 + (colStr.charCodeAt(i) - 64);
+            }
+            return { col, row };
+        }
+
+        /**
+         * Sortiert BVs nach Zellenidentifikator: zuerst Spalte aufsteigend (A, B, ..., AA, ...),
+         * dann Zeile aufsteigend pro Spalte. Beispiel: D6, D7, E8, F8, Y7.
+         * Einträge ohne gültige Zellenreferenz werden ans Ende gestellt.
+         */
+        function sortiereNachZelle(items) {
+            return items.slice().sort((a, b) => {
+                const zA = (a.quelle && a.quelle.zellenidentifikator) ? a.quelle.zellenidentifikator : '';
+                const zB = (b.quelle && b.quelle.zellenidentifikator) ? b.quelle.zellenidentifikator : '';
+                const pA = parseExcelZelle(zA);
+                const pB = parseExcelZelle(zB);
+                const validA = pA.col > 0 && pA.row > 0;
+                const validB = pB.col > 0 && pB.row > 0;
+                if (!validA && !validB) return 0;
+                if (!validA) return 1;
+                if (!validB) return -1;
+                if (pA.col !== pB.col) return pA.col - pB.col;
+                return pA.row - pB.row;
+            });
+        }
+
+        /**
+         * Lädt Berechnungsvorschriften und gruppiert sie nach Tabellenidentifikator + Tabellenblatt.
+         * Zeigt pro Gruppe die Zellenidentifikatoren und die menschenlesbaren Zusammenfassungen.
+         * Sortierung: Excel-Spalte aufsteigend, pro Spalte Zeile aufsteigend.
+         */
+        document.addEventListener('DOMContentLoaded', async () => {
+            const container = document.getElementById('zellen-container');
+
+            try {
+                const berechnungsvorschriften = await api.ladeAlleBerechnungsvorschriften();
+
+                // Gruppierung: Map<(tabellenidentifikator, tabellenblatt), Array<BV>>
+                // BVs ohne Quelle landen in Gruppe "Ohne Quellzuordnung"
+                const gruppen = new Map();
+
+                function gruppenKey(bv) {
+                    const q = bv.quelle || {};
+                    const tab = (q.tabellenidentifikator || '').trim() || null;
+                    const blatt = (q.tabellenblatt || '').trim() || null;
+                    if (!tab && !blatt) return '__OHNE_QUELLZUORDNUNG__';
+                    return `${tab || '(kein)'} | ${blatt || '(kein)'}`;
+                }
+
+                berechnungsvorschriften.forEach(bv => {
+                    const key = gruppenKey(bv);
+                    if (!gruppen.has(key)) {
+                        gruppen.set(key, []);
+                    }
+                    gruppen.get(key).push(bv);
+                });
+
+                // Sortiere Gruppen: zuerst nach Tabellenidentifikator, dann Tabellenblatt
+                // "Ohne Quellzuordnung" ans Ende
+                const sortierteKeys = Array.from(gruppen.keys()).sort((a, b) => {
+                    if (a === '__OHNE_QUELLZUORDNUNG__') return 1;
+                    if (b === '__OHNE_QUELLZUORDNUNG__') return -1;
+                    return a.localeCompare(b);
+                });
+
+                if (berechnungsvorschriften.length === 0) {
+                    container.innerHTML = '<div class="alert alert-info">Keine Berechnungsvorschriften gefunden.</div>';
+                    return;
+                }
+
+                let html = '';
+                for (const key of sortierteKeys) {
+                    const items = sortiereNachZelle(gruppen.get(key));
+                    const [tabId, blattId] = key === '__OHNE_QUELLZUORDNUNG__'
+                        ? ['Ohne Quellzuordnung', '']
+                        : key.split(' | ');
+
+                    html += `
+                        <div class="card mb-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <span class="badge bg-secondary me-2">${items.length} Zelle(n)</span>
+                                    ${tabId}${blattId ? ' → ' + blattId : ''}
+                                </h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <ul class="list-group list-group-flush">
+                                    ${items.map((bv, i) => {
+                                        const zelle = (bv.quelle && bv.quelle.zellenidentifikator)
+                                            ? bv.quelle.zellenidentifikator
+                                            : '(keine Zelle)';
+                                        const prevCol = i > 0 ? parseExcelZelle(items[i - 1].quelle?.zellenidentifikator || '').col : 0;
+                                        const currCol = parseExcelZelle(bv.quelle?.zellenidentifikator || '').col;
+                                        const spaltenwechsel = i > 0 && currCol > 0 && prevCol > 0 && currCol !== prevCol;
+                                        const trenner = spaltenwechsel ? '<li class="list-group-item zellen-spaltentrenner" aria-hidden="true"></li>' : '';
+                                        const zusammenfassung = bv.name || '(ohne Name)';
+                                        const beschreibung = (bv.quelle && bv.quelle.beschreibung)
+                                            ? ` – ${bv.quelle.beschreibung}`
+                                            : '';
+                                        return trenner + `
+                                            <li class="list-group-item zellen-eintrag">
+                                                <span class="zellen-badge">${zelle}</span>
+                                                <span class="zellen-beschreibung">
+                                                    <a href="berechnungsvorschrift.html?id=${bv.id}">${zusammenfassung}</a>
+                                                    ${beschreibung ? `<small class="text-muted">${beschreibung}</small>` : ''}
+                                                </span>
+                                                <a href="berechnungsvorschrift.html?id=${bv.id}" class="btn btn-sm btn-outline-primary zellen-details-btn">Details</a>
+                                            </li>
+                                        `;
+                                    }).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML = html;
+
+            } catch (error) {
+                container.innerHTML = `<div class="alert alert-danger">Fehler beim Laden: ${error.message}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>
