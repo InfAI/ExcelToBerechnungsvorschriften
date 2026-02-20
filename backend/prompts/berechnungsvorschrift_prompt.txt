@@ -24,6 +24,7 @@ REGELN FÜR DEN PSEUDOCODE (formel):
 2. Jede Wertquelle wird zu genau einer Variable (Zellreferenz UND Tabellenspalte):
    - Zellreferenzen (A1, A9, $A$1): werden zu einer Variable mit sprechendem Namen (z.B. A9 → "Ausbildungsstand"). Gleiche Zelle mehrfach in der Formel = nur eine Variable in variablen[].
    - Zellreferenzen MÜSSEN die Excel-Referenz als "zellenidentifikator" erhalten (z.B. A9 → zellenidentifikator: "A9", D7 → "D7"). Ohne $; relative Form wie in der Formel. Das Matching verwendet dies, um vorhandene Berechnungsvorschriften zu finden, die diese Zelle berechnen.
+   - Zellreferenzen aus ANDEREM Tabellenblatt (z.B. =$'1. Lohn AW'.G19 oder ='Sheet2'!A1): zusätzlich "tabellenblatt_referenz" setzen mit dem Blattnamen (z.B. "1. Lohn AW", "Sheet2"). zellenidentifikator bleibt die Zellreferenz (z.B. "G19", "A1"). Ohne tabellenblatt_referenz sucht das Matching nur im aktuellen Blatt – fremde Blätter würden nicht verlinkt.
    - Tabellenbezüge, die Werte liefern (z.B. Tabelle[Spalte] wie MAJahr1[Arbeitsstunden/ Jahr] als Summenbereich in SUMIFS): werden ebenfalls als eigene Variable modelliert – mit sprechendem Namen aus dem Spaltennamen (z.B. "Arbeitsstunden_pro_Jahr"). So ist jede Wertquelle im System befüllbar oder an eine BV verlinkbar.
    - Im formel-String dürfen nur Variablennamen vorkommen, die exakt in variablen[].name existieren. Kein beschreibender Fließtext, der eine Wertquelle meint, ohne dass dafür eine Variable existiert. Beispiel: nicht "Summe Arbeitsstunden pro Jahr (gefiltert nach Ausbildungsstand)" mit nur einer Variable "Ausbildungsstand", sondern zwei Variablen (z.B. "Arbeitsstunden_pro_Jahr", "Ausbildungsstand") und formel z.B. "Summe(Arbeitsstunden_pro_Jahr, gefiltert nach Ausbildungsstand) / Anzahl(gefiltert nach Ausbildungsstand)".
    - Variablennamen müssen im formel-String exakt so vorkommen wie in variablen[].name. Das ist zwingend für Verlinkbarkeit und Auswertung.
@@ -59,7 +60,8 @@ AUSGABE (nur dieses JSON-Schema, keine weiteren Felder):
     {
       "name": "Variablenname (exakt so wie im formel-String)",
       "ist_primitive": true,
-      "zellenidentifikator": "nur bei Zellreferenzen (z.B. A1, D7, B2); bei Tabellenspalten weglassen"
+      "zellenidentifikator": "nur bei Zellreferenzen (z.B. A1, D7, B2); bei Tabellenspalten weglassen",
+      "tabellenblatt_referenz": "nur bei Zellreferenzen aus anderem Blatt (z.B. '1. Lohn AW'.G19 → '1. Lohn AW'); bei gleichem Blatt weglassen"
     }
   ],
   "operation": "optional: 'index_lookup' nur bei INDEX/MATCH-Formeln; sonst weglassen (Default = Ausdruck)",
@@ -73,7 +75,7 @@ AUSGABE (nur dieses JSON-Schema, keine weiteren Felder):
 
 WICHTIG:
 - referenz_berechnungsvorschrift_id darf NICHT gesetzt werden (wird vom System später befüllt).
-- Jede Variable mit "name" und "ist_primitive": true. Bei Zellreferenzen zusätzlich "zellenidentifikator" (z.B. "D7", "A9") setzen – für Matching mit vorhandenen Berechnungsvorschriften. Tabellenspalten haben keinen zellenidentifikator.
+- Jede Variable mit "name" und "ist_primitive": true. Bei Zellreferenzen zusätzlich "zellenidentifikator" (z.B. "D7", "A9") setzen – für Matching mit vorhandenen Berechnungsvorschriften. Bei Zellreferenzen aus anderem Tabellenblatt zusätzlich "tabellenblatt_referenz" (z.B. "1. Lohn AW") setzen. Tabellenspalten haben keinen zellenidentifikator.
 - Jede Wertquelle (Zellreferenz oder Tabellenspalte, die Werte liefert) = eine Variable. Im formel-String nur diese Variablennamen (exakt) verwenden; keine werttragenden Begriffe ohne zugehörige Variable.
 - Bei INDEX/MATCH-Formeln: "operation": "index_lookup" setzen und Variablen in dieser Reihenfolge ausgeben: (1) Tabelle, (2) Zeilenkriterium (z.B. H9), (3) Spaltenkriterium (z.B. I4). Sonst "operation" weglassen.
 - name: wird ignoriert (System nutzt Nutzer-Beschreibung als Name); formel: nur Pseudocode mit Variablennamen; metadaten: aus Kontext ableiten.

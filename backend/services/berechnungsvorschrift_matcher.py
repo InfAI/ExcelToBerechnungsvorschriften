@@ -112,19 +112,24 @@ class BerechnungsvorschriftMatcher:
                 if not var.ist_primitive and var.referenz_berechnungsvorschrift_id:
                     continue
                 # 1. Priorität: Zellenidentifikator-Match (D7 in Variable ↔ D7 in neuer BV.quelle)
-                # Zusätzlich: Tabellenidentifikator, Tabellenblatt (hatQuelleTabellenblatt)
+                # Bei Cross-Sheet: var.tabellenblatt_referenz mit neue_blatt vergleichen.
+                # Bei gleichem Blatt: bv.quelle.tabellenblatt mit neue_blatt vergleichen.
                 if neue_zelle and getattr(var, "zellenidentifikator", None):
                     var_zelle = (var.zellenidentifikator or "").strip()
                     if var_zelle and var_zelle.upper() == neue_zelle.upper():
                         bv_tabelle = (bv.quelle.tabellenidentifikator or "").strip() if bv.quelle else ""
+                        # Cross-Sheet: Variable referenziert anderes Blatt → tabellenblatt_referenz
+                        var_blatt = (getattr(var, "tabellenblatt_referenz", None) or "").strip()
+                        # Same-Sheet: Formel und Zelle im gleichen Blatt → bv.quelle.tabellenblatt
                         bv_blatt = (bv.quelle.tabellenblatt or "").strip() if bv.quelle else ""
+                        such_blatt = var_blatt if var_blatt else bv_blatt
                         if (not neue_tabelle or bv_tabelle == neue_tabelle) and \
-                           (not neue_blatt or bv_blatt == neue_blatt):
+                           (not neue_blatt or such_blatt == neue_blatt):
                             key = (bv.id, var.name)
                             if key not in verlinkt_ids:
                                 verlinkt_ids.add(key)
                                 ergebnis.append((bv, var.name))
-                                logger.debug(f"Rückwärts-Match (Zelle+Blatt): BV {bv.id} Variable '{var.name}' ({var_zelle}) -> neue BV {neue_bv.id} ({neue_zelle})")
+                                logger.debug(f"Rückwärts-Match (Zelle+Blatt): BV {bv.id} Variable '{var.name}' ({var_zelle}, Blatt={such_blatt}) -> neue BV {neue_bv.id} ({neue_zelle}, Blatt={neue_blatt})")
                             continue
                 
                 # 2. Priorität: Excel-Identifikator-Match (Variable.name == neue_bv.excel_identifikator)
@@ -187,14 +192,19 @@ class BerechnungsvorschriftMatcher:
             passende = []
             
             # 1. Priorität: Zellenidentifikator + Tabellenidentifikator + Tabellenblatt
+            # Bei Cross-Sheet-Referenzen (z.B. =$'1. Lohn AW'.G19): tabellenblatt_referenz der Variable
+            # verwenden, sonst würde nur im Formel-Blatt gesucht und die BV im anderen Blatt nicht gefunden.
             if getattr(var, "zellenidentifikator", None) and var.zellenidentifikator.strip():
+                such_tabellenblatt = (
+                    getattr(var, "tabellenblatt_referenz", None) and var.tabellenblatt_referenz.strip()
+                ) or tabellenblatt
                 passende = self.rdf_service.suche_nach_quelle(
                     tabellenidentifikator=tabellenidentifikator,
-                    tabellenblatt=tabellenblatt,
+                    tabellenblatt=such_tabellenblatt,
                     zellenidentifikator=var.zellenidentifikator.strip()
                 )
                 if passende:
-                    logger.debug(f"Variable '{var.name}' (Zelle {var.zellenidentifikator}): {len(passende)} Treffer via Zellenidentifikator")
+                    logger.debug(f"Variable '{var.name}' (Zelle {var.zellenidentifikator}, Blatt={such_tabellenblatt}): {len(passende)} Treffer via Zellenidentifikator")
             
             # 2. Priorität: Excel-Identifikator (Variable.name passt zu Excel-Identifikator in formel_original
             # oder var.name hat Excel-Identifikator-Muster wie _1_Wert)

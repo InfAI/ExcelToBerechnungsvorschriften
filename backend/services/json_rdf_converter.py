@@ -117,6 +117,9 @@ class JSONRDFConverter:
             # Zellenidentifikator der Quellzelle (z.B. D7, A9) – für Matching
             if getattr(var, "zellenidentifikator", None):
                 graph.add((var_uri, property_uri("referenziertZelle"), Literal(var.zellenidentifikator)))
+            # Tabellenblatt der referenzierten Zelle bei Cross-Sheet-Referenzen (z.B. '1. Lohn AW'.G19)
+            if getattr(var, "tabellenblatt_referenz", None) and var.tabellenblatt_referenz:
+                graph.add((var_uri, property_uri("referenziertTabellenblatt"), Literal(var.tabellenblatt_referenz)))
             
             # Referenz zu anderer Berechnungsvorschrift (falls vorhanden)
             if var.referenz_berechnungsvorschrift_id and not var.ist_primitive:
@@ -234,12 +237,16 @@ class JSONRDFConverter:
             # Zellenidentifikator der Quellzelle (für Matching beim erneuten Verlinken)
             zellenidentifikator_val = graph.value(var_uri, property_uri("referenziertZelle"))
             zellenidentifikator = str(zellenidentifikator_val) if zellenidentifikator_val else None
+            # Tabellenblatt bei Cross-Sheet-Referenzen (z.B. '1. Lohn AW'.G19)
+            tabellenblatt_ref_val = graph.value(var_uri, property_uri("referenziertTabellenblatt"))
+            tabellenblatt_referenz = str(tabellenblatt_ref_val) if tabellenblatt_ref_val else None
             
             variablen.append(Variable(
                 name=var_name,
                 referenz_berechnungsvorschrift_id=ref_id,
                 ist_primitive=ist_primitive,
-                zellenidentifikator=zellenidentifikator
+                zellenidentifikator=zellenidentifikator,
+                tabellenblatt_referenz=tabellenblatt_referenz
             ))
             if ref_id:
                 logger.debug(f"Variable '{var_name}' extrahiert mit Referenz zu {ref_id}")

@@ -266,3 +266,39 @@ GEWÜNSCHTES JSON-OUTPUT:
 }
 
 Erklärung: IFERROR wird weggelassen. D7 → Variable "Dividend" mit zellenidentifikator: "D7"; D8 → Variable "Divisor" mit zellenidentifikator: "D8". Matching: BVs mit gleichem Tabellenidentifikator, Tabellenblatt und Zellenidentifikator (D7/D8) werden verlinkt.
+
+---
+
+BEISPIEL 9 – Zellreferenz aus anderem Tabellenblatt (Cross-Sheet)
+
+Formel referenziert Zelle G19 im Tabellenblatt "1. Lohn AW", die Formel steht aber in einem anderen Blatt.
+Ohne tabellenblatt_referenz würde das Matching nur im Blatt der Formel suchen und die BV in "1. Lohn AW" nicht finden.
+
+BEISPIEL-EINGABE:
+Tabellenidentifikator: Tabelle1
+Tabellenblatt: Übersicht
+Zellenidentifikator: E10
+Beschreibung: Lohnanteil als Prozentwert
+Formel: =$'1. Lohn AW'.G19/100
+
+GEWÜNSCHTES JSON-OUTPUT:
+{
+  "name": "N/A",
+  "formel": "Lohnwert / 100",
+  "variablen": [
+    {
+      "name": "Lohnwert",
+      "ist_primitive": true,
+      "zellenidentifikator": "G19",
+      "tabellenblatt_referenz": "1. Lohn AW"
+    }
+  ],
+  "metadaten": {
+    "kategorie": "Personal",
+    "symbol": "LAP",
+    "datentyp": "decimal",
+    "einheit": "%"
+  }
+}
+
+Erklärung: G19 liegt in "1. Lohn AW", nicht im Formel-Blatt "Übersicht". tabellenblatt_referenz: "1. Lohn AW" ist zwingend, damit das Matching die passende BV findet.

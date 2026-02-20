@@ -36,6 +36,13 @@ class Variable(BaseModel):
                     "Wird für Matching genutzt: BV mit quelle.zellenidentifikator=D7 wird verlinkt. "
                     "Bei Tabellenspalten leer lassen."
     )
+    # Bei Zellreferenzen aus anderem Tabellenblatt (z.B. =$'1. Lohn AW'.G19): Name des Quell-Blatts.
+    # Ohne dies würde der Matcher nur im Blatt der Formel suchen und die BV in '1. Lohn AW' nicht finden.
+    tabellenblatt_referenz: Optional[str] = Field(
+        None,
+        description="Tabellenblatt der referenzierten Zelle, wenn diese in anderem Blatt liegt "
+                    "(z.B. '1. Lohn AW' bei =$'1. Lohn AW'.G19). Nur bei fremden Blättern setzen."
+    )
 
 
 class Metadaten(BaseModel):
