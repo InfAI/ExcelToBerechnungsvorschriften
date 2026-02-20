@@ -15,6 +15,11 @@ class Zelleneingabe(BaseModel):
     formel: str = Field(..., description="Excel-Formel (z.B. '=A1+B1*C1')")
     # Optional: Wenn Nutzer Kategorie eingibt, wird sie verwendet; sonst erzeugt das LLM sie.
     kategorie: Optional[str] = Field(None, description="Kategorie (optional) – wenn gesetzt, wird LLM angewiesen diese zu nutzen; sonst LLM generiert")
+    # Optional: Excel-Identifikator der Zelle (z.B. _1_Wert) – aus Excel, nicht aus der Datenbank.
+    excel_identifikator: Optional[str] = Field(
+        None,
+        description="Excel-Identifikator der Zelle (optional, z.B. _1_Wert). Stammt aus Excel."
+    )
     
     class Config:
         json_schema_extra = {

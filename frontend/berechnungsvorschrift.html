@@ -56,6 +56,7 @@
                         <div class="col-md-6">
                             <p><strong>Formel:</strong> <span id="bv-formel"></span></p>
                             <p id="bv-formel-original-row" class="d-none"><strong>Originale Excel-Formel:</strong> <code id="bv-formel-original" class="bg-light px-2 py-1 rounded"></code></p>
+                            <p id="bv-excel-identifikator-row" class="d-none"><strong>Excel-Identifikator:</strong> <code id="bv-excel-identifikator"></code></p>
                             <p><strong>Version:</strong> <span id="bv-version"></span></p>
                             <p id="bv-operation-row" class="d-none"><strong>Auswertungstyp:</strong> <span id="bv-operation"></span></p>
                             <p><strong>Erstellt am:</strong> <span id="bv-erstellt-am"></span></p>
@@ -143,6 +144,12 @@
                         <input type="text" class="form-control" id="verlinken-suche" placeholder="Name, Kategorie, Symbol..." aria-describedby="verlinken-suche-help">
                         <div id="verlinken-suche-help" class="form-text">Leer lassen für alle Berechnungsvorschriften</div>
                     </div>
+                    <div id="verlinken-vorgeschlagen-container" class="mb-3 d-none">
+                        <h6 class="text-success">Vorgeschlagen (passender Excel-Identifikator)</h6>
+                        <ul class="list-group list-group-flush" id="verlinken-vorgeschlagen">
+                            <!-- Wird dynamisch gefüllt -->
+                        </ul>
+                    </div>
                     <div id="verlinken-liste-container" style="max-height: 400px; overflow-y: auto;">
                         <div id="verlinken-liste-loading" class="text-center py-4">
                             <div class="spinner-border" role="status"><span class="visually-hidden">Lädt...</span></div>
@@ -196,6 +203,11 @@
                                 <label for="edit-einheit" class="form-label">Einheit *</label>
                                 <input type="text" class="form-control" id="edit-einheit" required>
                             </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-excel-identifikator" class="form-label">Excel-Identifikator (optional)</label>
+                            <input type="text" class="form-control" id="edit-excel-identifikator"
+                                   placeholder="z.B. _1_Wert – stammt aus Excel">
                         </div>
                     </form>
                 </div>
@@ -256,6 +268,14 @@
                 formelOriginalRow.classList.remove('d-none');
             } else {
                 formelOriginalRow.classList.add('d-none');
+            }
+            // Excel-Identifikator (stammt aus Excel, nicht aus der Datenbank)
+            const excelIdRow = document.getElementById('bv-excel-identifikator-row');
+            if (bv.excel_identifikator) {
+                document.getElementById('bv-excel-identifikator').textContent = bv.excel_identifikator;
+                excelIdRow.classList.remove('d-none');
+            } else {
+                excelIdRow.classList.add('d-none');
             }
             document.getElementById('bv-version').textContent = bv.version;
             // Auswertungstyp (operation) nur anzeigen, wenn gesetzt (z.B. index_lookup)
@@ -380,6 +400,7 @@
             document.getElementById('edit-symbol').value = aktuelleBerechnungsvorschrift.metadaten.symbol;
             document.getElementById('edit-datentyp').value = aktuelleBerechnungsvorschrift.metadaten.datentyp;
             document.getElementById('edit-einheit').value = aktuelleBerechnungsvorschrift.metadaten.einheit;
+            document.getElementById('edit-excel-identifikator').value = aktuelleBerechnungsvorschrift.excel_identifikator || '';
             
             // Modal anzeigen
             const modal = new bootstrap.Modal(document.getElementById('bearbeiten-modal'));
@@ -389,6 +410,7 @@
         async function speichereAenderungen() {
             if (!aktuelleBerechnungsvorschrift) return;
             
+            const excelIdVal = document.getElementById('edit-excel-identifikator').value.trim();
             const aktualisierteBv = {
                 ...aktuelleBerechnungsvorschrift,
                 name: document.getElementById('edit-name').value,
@@ -398,7 +420,8 @@
                     symbol: document.getElementById('edit-symbol').value,
                     datentyp: document.getElementById('edit-datentyp').value,
                     einheit: document.getElementById('edit-einheit').value
-                }
+                },
+                excel_identifikator: excelIdVal || null
             };
             
             try {
@@ -467,13 +490,46 @@
 
         function verlinkenListeAnzeigen() {
             const liste = document.getElementById('verlinken-liste');
+            const vorgeschlagenContainer = document.getElementById('verlinken-vorgeschlagen-container');
+            const vorgeschlagenListe = document.getElementById('verlinken-vorgeschlagen');
             const suchbegriff = document.getElementById('verlinken-suche').value.trim().toLowerCase();
+
+            // BVs mit passendem Excel-Identifikator (Variable.name === bv.excel_identifikator)
+            const vorgeschlagen = verlinkenBvsCache.filter(bv =>
+                bv.id !== aktuelleBerechnungsvorschrift.id &&
+                bv.excel_identifikator &&
+                bv.excel_identifikator === verlinkenVariablenname
+            );
+            if (vorgeschlagen.length > 0) {
+                vorgeschlagenContainer.classList.remove('d-none');
+                vorgeschlagenListe.innerHTML = vorgeschlagen.map(bv => `
+                    <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bv-id="${bv.id}">
+                        <div>
+                            <strong>${bv.name}</strong>
+                            <span class="badge bg-success ms-2">Excel-Identifikator passt</span>
+                            <span class="badge bg-info ms-1">${bv.metadaten?.symbol || '-'}</span>
+                            <small class="text-muted d-block">${bv.metadaten?.kategorie || ''} · ${bv.metadaten?.einheit || ''}</small>
+                        </div>
+                        <small class="text-muted">${bv.id.substring(0, 8)}...</small>
+                    </li>
+                `).join('');
+                vorgeschlagenListe.querySelectorAll('.list-group-item-action').forEach(li => {
+                    li.addEventListener('click', () => verlinkeVariableManuell(li.getAttribute('data-bv-id')));
+                });
+            } else {
+                vorgeschlagenContainer.classList.add('d-none');
+            }
+
+            // Normale Liste (ohne vorgeschlagene, die bereits oben stehen)
+            const vorgeschlagenIds = new Set(vorgeschlagen.map(bv => bv.id));
             const gefiltert = verlinkenBvsCache
-                .filter(bv => bv.id !== aktuelleBerechnungsvorschrift.id)
+                .filter(bv => bv.id !== aktuelleBerechnungsvorschrift.id && !vorgeschlagenIds.has(bv.id))
                 .filter(bv => !suchbegriff || [bv.name, bv.metadaten?.kategorie, bv.metadaten?.symbol, bv.metadaten?.einheit]
                     .filter(Boolean).join(' ').toLowerCase().includes(suchbegriff));
-            if (gefiltert.length === 0) {
+            if (gefiltert.length === 0 && vorgeschlagen.length === 0) {
                 liste.innerHTML = '<li class="list-group-item text-muted">Keine passenden Berechnungsvorschriften gefunden</li>';
+            } else if (gefiltert.length === 0) {
+                liste.innerHTML = '';
             } else {
                 liste.innerHTML = gefiltert.map(bv => `
                     <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bv-id="${bv.id}">

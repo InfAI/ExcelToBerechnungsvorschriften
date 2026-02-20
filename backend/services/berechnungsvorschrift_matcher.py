@@ -3,6 +3,7 @@ Berechnungsvorschrift-Matcher
 Programmatische Prüfung auf bestehende Berechnungsvorschriften und Verlinkung von Variablen
 """
 import logging
+import re
 from typing import List, Optional, Tuple
 import sys
 from pathlib import Path
@@ -81,13 +82,18 @@ class BerechnungsvorschriftMatcher:
         
         Matching (Priorität):
         1. Variable.zellenidentifikator == neue_bv.quelle.zellenidentifikator (und gleiches Blatt)
-        2. Variable-Name stimmt mit neuer BV (Name oder Quelle-Beschreibung) überein.
+        2. Variable.name == neue_bv.excel_identifikator (Excel-Identifikator, stammt aus Excel)
+        3. Variable-Name stimmt mit neuer BV (Name oder Quelle-Beschreibung) überein.
         
         Returns:
             Liste von (Berechnungsvorschrift, Variablenname) die verlinkt werden können
         """
-        if not neue_bv.id or not neue_bv.quelle:
-            logger.debug("Rückwärts-Verlinkung: neue BV hat keine ID oder Quelle - überspringe")
+        if not neue_bv.id:
+            logger.debug("Rückwärts-Verlinkung: neue BV hat keine ID - überspringe")
+            return []
+        # Benötigt Quelle (für Zell-Match) oder excel_identifikator (für Identifikator-Match)
+        if not neue_bv.quelle and not getattr(neue_bv, "excel_identifikator", None):
+            logger.debug("Rückwärts-Verlinkung: neue BV hat weder Quelle noch excel_identifikator - überspringe")
             return []
         
         alle_bvs = self.rdf_service.lade_alle_berechnungsvorschriften()
@@ -121,7 +127,18 @@ class BerechnungsvorschriftMatcher:
                                 logger.debug(f"Rückwärts-Match (Zelle+Blatt): BV {bv.id} Variable '{var.name}' ({var_zelle}) -> neue BV {neue_bv.id} ({neue_zelle})")
                             continue
                 
-                # 2. Fallback: Name/Symbol/Beschreibung-Match
+                # 2. Priorität: Excel-Identifikator-Match (Variable.name == neue_bv.excel_identifikator)
+                neue_excel_id = getattr(neue_bv, "excel_identifikator", None)
+                if neue_excel_id and str(neue_excel_id).strip():
+                    if (var.name or "").strip() == (neue_excel_id or "").strip():
+                        key = (bv.id, var.name)
+                        if key not in verlinkt_ids:
+                            verlinkt_ids.add(key)
+                            ergebnis.append((bv, var.name))
+                            logger.debug(f"Rückwärts-Match (Excel-Identifikator): BV {bv.id} Variable '{var.name}' -> neue BV {neue_bv.id} (excel_identifikator={neue_excel_id})")
+                        continue
+                
+                # 3. Fallback: Name/Symbol/Beschreibung-Match
                 var_name_lower = (var.name or "").strip().lower()
                 if not var_name_lower:
                     continue
@@ -146,9 +163,10 @@ class BerechnungsvorschriftMatcher:
         
         Matching-Strategie (Priorität):
         1. Variable mit zellenidentifikator (z.B. D7): Suche BV, deren Quelle die Zelle D7 ist
-           (quelle.tabellenidentifikator + tabellenblatt + zellenidentifikator = D7). D7 und D8
-           liegen im gleichen Blatt wie die Ausgabezelle (E8).
-        2. Variable ohne zellenidentifikator (Tabellenspalte): Fallback auf Name/Symbol in Metadaten.
+           (quelle.tabellenidentifikator + tabellenblatt + zellenidentifikator = D7).
+        2. Variable, deren Name ein Excel-Identifikator in formel_original ist (z.B. _1_Wert):
+           Suche BV mit excel_identifikator = var.name.
+        3. Variable ohne zellenidentifikator (Tabellenspalte): Fallback auf Name/Symbol in Metadaten.
         
         Args:
             berechnungsvorschrift: Berechnungsvorschrift mit unverlinkten Variablen
@@ -178,7 +196,22 @@ class BerechnungsvorschriftMatcher:
                 if passende:
                     logger.debug(f"Variable '{var.name}' (Zelle {var.zellenidentifikator}): {len(passende)} Treffer via Zellenidentifikator")
             
-            # 2. Fallback: Name/Symbol in Metadaten (Tabellenspalten, keine Zellreferenz)
+            # 2. Priorität: Excel-Identifikator (Variable.name passt zu Excel-Identifikator in formel_original
+            # oder var.name hat Excel-Identifikator-Muster wie _1_Wert)
+            # Excel-Identifikatoren in Formeln: z.B. _1_Wert, _2_Kosten (Muster: _ + alphanumerisch)
+            if not passende and var.name:
+                excel_identifiers_in_formel = set()
+                formel_orig = getattr(berechnungsvorschrift, "formel_original", None) or ""
+                if formel_orig:
+                    excel_identifiers_in_formel = set(re.findall(r'_[\w]+', formel_orig))
+                # Suche, wenn var.name in formel_original vorkommt ODER var.name dem Excel-Muster entspricht
+                is_excel_id = var.name in excel_identifiers_in_formel or bool(re.match(r'^_[\w]+$', var.name))
+                if is_excel_id:
+                    passende = self.rdf_service.suche_nach_excel_identifikator(var.name)
+                    if passende:
+                        logger.debug(f"Variable '{var.name}' (Excel-Identifikator): {len(passende)} Treffer via excel_identifikator")
+            
+            # 3. Fallback: Name/Symbol in Metadaten (Tabellenspalten, keine Zellreferenz)
             if not passende:
                 passende = self.rdf_service.suche_nach_metadaten(
                     name=var.name,

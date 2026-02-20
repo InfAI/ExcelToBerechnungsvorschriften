@@ -165,9 +165,13 @@
                                         const beschreibung = (bv.quelle && bv.quelle.beschreibung)
                                             ? ` – ${bv.quelle.beschreibung}`
                                             : '';
+                                        // Excel-Identifikator anzeigen, falls vorhanden (stammt aus Excel)
+                                        const excelIdBadge = bv.excel_identifikator
+                                            ? `<span class="badge bg-success ms-1" title="Excel-Identifikator">${bv.excel_identifikator}</span>`
+                                            : '';
                                         return trenner + `
                                             <li class="list-group-item zellen-eintrag">
-                                                <span class="zellen-badge">${zelle}</span>
+                                                <span class="zellen-badge">${zelle}</span>${excelIdBadge}
                                                 <span class="zellen-beschreibung">
                                                     <a href="berechnungsvorschrift.html?id=${bv.id}">${zusammenfassung}</a>
                                                     ${beschreibung ? `<small class="text-muted">${beschreibung}</small>` : ''}

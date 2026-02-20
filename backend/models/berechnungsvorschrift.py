@@ -81,6 +81,13 @@ class Berechnungsvorschrift(BaseModel):
         None,
         description="Auswertungstyp: 'ausdruck' (Default) = Formel als Ausdruck; 'index_lookup' = 2D-Tabellenlookup (Tabelle, Zeilenkey, Spaltenkey)"
     )
+    # Excel-Identifikator der Ausgabezelle (z.B. _1_Wert) – stammt aus Excel, nicht aus der Datenbank.
+    # Unterscheidet sich von quelle.zellenidentifikator (Excel-Zellreferenz A1, D7) und von id (Datenbank-UUID).
+    excel_identifikator: Optional[str] = Field(
+        None,
+        description="Excel-Identifikator der Ausgabezelle (z.B. _1_Wert). Stammt aus Excel, nicht aus der Datenbank. "
+                    "Wird für Matching genutzt, wenn Formeln auf diesen Identifikator verweisen."
+    )
     
     class Config:
         json_schema_extra = {

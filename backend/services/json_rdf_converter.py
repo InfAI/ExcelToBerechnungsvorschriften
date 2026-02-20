@@ -67,6 +67,10 @@ class JSONRDFConverter:
         if getattr(bv, "operation", None):
             graph.add((bv_uri, property_uri("hatOperation"), Literal(bv.operation)))
         
+        # Excel-Identifikator (optional) – stammt aus Excel, nicht aus der Datenbank
+        if getattr(bv, "excel_identifikator", None) and bv.excel_identifikator:
+            graph.add((bv_uri, property_uri("hatExcelIdentifikator"), Literal(bv.excel_identifikator)))
+        
         # Metadaten
         graph.add((bv_uri, property_uri("hatKategorie"), Literal(bv.metadaten.kategorie)))
         graph.add((bv_uri, property_uri("hatSymbol"), Literal(bv.metadaten.symbol)))
@@ -154,6 +158,10 @@ class JSONRDFConverter:
         # Operation (optional) – Auswertungstyp für Berechnung mit echten Werten
         operation_val = graph.value(bv_uri, property_uri("hatOperation"))
         operation = str(operation_val) if operation_val else None
+        
+        # Excel-Identifikator (optional) – stammt aus Excel, nicht aus der Datenbank
+        excel_identifikator_val = graph.value(bv_uri, property_uri("hatExcelIdentifikator"))
+        excel_identifikator = str(excel_identifikator_val).strip() if excel_identifikator_val else None
         
         # Metadaten extrahieren
         kategorie_val = graph.value(bv_uri, property_uri("hatKategorie"))
@@ -251,7 +259,8 @@ class JSONRDFConverter:
             version=version,
             erstellt_am=erstellt_am,
             geaendert_am=geaendert_am,
-            operation=operation
+            operation=operation,
+            excel_identifikator=excel_identifikator
         )
         logger.debug(f"RDF-zu-JSON Konvertierung abgeschlossen: ID={bv.id}, Name={bv.name}, Variablen={len(bv.variablen)}")
         return bv

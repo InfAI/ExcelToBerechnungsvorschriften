@@ -78,6 +78,13 @@
                                placeholder="z.B. Gehalt, Kosten – leer lassen für LLM-Generierung">
                     </div>
 
+                    <div class="mb-3">
+                        <label for="excel-identifikator" class="form-label">Excel-Identifikator (optional)</label>
+                        <input type="text" class="form-control" id="excel-identifikator"
+                               placeholder="z.B. _1_Wert – Identifikator der Zelle aus Excel">
+                        <div class="form-text">Manche Excel-Zellen erhalten einen Identifikator (z.B. _1_Wert), auf den in Formeln verwiesen wird.</div>
+                    </div>
+
                     <button type="submit" class="btn btn-primary" id="submit-btn">
                         <span class="spinner-border spinner-border-sm d-none" id="loading-spinner"></span>
                         Berechnungsvorschrift generieren
@@ -125,14 +132,16 @@
             submitBtn.disabled = true;
             spinner.classList.remove('d-none');
             
-            // Zellendaten sammeln (Kategorie optional – wenn leer, erzeugt das LLM sie)
+            // Zellendaten sammeln (Kategorie und Excel-Identifikator optional)
+            const excelId = document.getElementById('excel-identifikator').value.trim();
             const zelleneingabe = {
                 tabellenidentifikator: document.getElementById('tabellenidentifikator').value,
                 tabellenblatt: document.getElementById('tabellenblatt').value,
                 zellenidentifikator: document.getElementById('zellenidentifikator').value,
                 beschreibung: document.getElementById('beschreibung').value,
                 formel: document.getElementById('formel').value,
-                kategorie: document.getElementById('kategorie').value.trim() || undefined
+                kategorie: document.getElementById('kategorie').value.trim() || undefined,
+                excel_identifikator: excelId || undefined
             };
             
             try {
@@ -171,6 +180,7 @@
                 <h6>${bv.name}</h6>
                 <p class="mb-2"><strong>Formel:</strong> <code>${bv.formel}</code></p>
                 ${bv.formel_original ? `<p class="mb-2"><strong>Originale Excel-Formel:</strong> <code class="bg-light px-2 py-1 rounded">${bv.formel_original}</code></p>` : ''}
+                ${bv.excel_identifikator ? `<p class="mb-2"><strong>Excel-Identifikator:</strong> <code>${bv.excel_identifikator}</code></p>` : ''}
                 <p class="mb-2"><strong>Version:</strong> ${bv.version}</p>
                 
                 <h6 class="mt-3">Metadaten</h6>

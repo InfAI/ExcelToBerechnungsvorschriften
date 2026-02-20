@@ -370,6 +370,58 @@ class RDFService:
             logger.error(f"Fehler bei Suche nach Quelle: {type(e).__name__}: {e}", exc_info=True)
             return []
     
+    def suche_nach_excel_identifikator(self, excel_identifikator: str) -> List[Berechnungsvorschrift]:
+        """
+        Sucht Berechnungsvorschriften nach Excel-Identifikator (z.B. _1_Wert).
+        Der Excel-Identifikator stammt aus Excel, nicht aus der Datenbank.
+        
+        Args:
+            excel_identifikator: Excel-Identifikator der Ausgabezelle
+            
+        Returns:
+            Liste der gefundenen Berechnungsvorschriften
+        """
+        if not excel_identifikator or not str(excel_identifikator).strip():
+            return []
+        
+        def escape_sparql_string(s):
+            return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+        
+        identifier = str(excel_identifikator).strip()
+        conditions = [f'?bv bv:hatExcelIdentifikator "{escape_sparql_string(identifier)}"']
+        where_clause = " . ".join(conditions)
+        namespace_iri = get_namespace_iri()
+        
+        query = f"""
+        PREFIX bv: <{namespace_iri}>
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        
+        SELECT DISTINCT ?bv_id
+        WHERE {{
+            ?bv rdf:type bv:Berechnungsvorschrift .
+            {where_clause} .
+            BIND(REPLACE(STR(?bv), ".*berechnungsvorschrift/", "") AS ?bv_id)
+        }}
+        """
+        
+        client = self._get_sparql_client()
+        client.setQuery(query)
+        
+        try:
+            results = client.queryAndConvert()
+            berechnungsvorschriften = []
+            if "results" in results and "bindings" in results["results"]:
+                for result in results["results"]["bindings"]:
+                    bv_id = result["bv_id"]["value"]
+                    bv = self.lade_berechnungsvorschrift(bv_id)
+                    if bv:
+                        berechnungsvorschriften.append(bv)
+            logger.debug(f"Suche nach Excel-Identifikator {identifier}: {len(berechnungsvorschriften)} Treffer")
+            return berechnungsvorschriften
+        except Exception as e:
+            logger.error(f"Fehler bei Suche nach Excel-Identifikator: {type(e).__name__}: {e}", exc_info=True)
+            return []
+    
     def finde_verwendet_in(self, bv_id: str) -> List[Berechnungsvorschrift]:
         """
         Findet alle Berechnungsvorschriften, die diese Berechnungsvorschrift referenzieren

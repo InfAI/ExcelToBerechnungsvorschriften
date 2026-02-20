@@ -3,6 +3,7 @@ API-Routes für Berechnungsvorschriften
 """
 import uuid
 import logging
+from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query
 import sys
@@ -84,6 +85,8 @@ async def erstelle_berechnungsvorschrift(request: BerechnungsvorschriftErstellen
                     logger.warning(f"Rückwärts-Verlinkung übersprungen (Zirkularität): {andere_bv.id} -> {berechnungsvorschrift.id}")
                     continue
                 andere_bv = matcher.verlinke_variable_manuell(andere_bv, variablenname, berechnungsvorschrift.id)
+                # Rückwärts-Verlinkung ist eine Änderung: geaendert_am aktualisieren
+                andere_bv.geaendert_am = datetime.now()
                 rdf_service.speichere_berechnungsvorschrift(andere_bv)
                 aktualisierte_verlinkungen.append({"bv_id": andere_bv.id, "name": andere_bv.name})
                 logger.info(f"Rückwärts-Verlinkung: BV {andere_bv.id} Variable '{variablenname}' -> {berechnungsvorschrift.id}")
@@ -284,6 +287,8 @@ async def verlinkung_aufheben(bv_id: str, variablenname: str) -> Berechnungsvors
         raise HTTPException(status_code=404, detail="Berechnungsvorschrift nicht gefunden")
     
     bv = matcher.verlinkung_aufheben(bv, variablenname)
+    # Aufheben der Verlinkung ist eine Änderung: geaendert_am aktualisieren
+    bv.geaendert_am = datetime.now()
     rdf_service.speichere_berechnungsvorschrift(bv)
     logger.info(f"Verlinkung für Variable '{variablenname}' in {bv_id} aufgehoben")
     return bv
@@ -319,6 +324,8 @@ async def verlinke_variable_manuell(
     logger.debug(f"Verlinke Variable '{variablenname}' in {bv_id} zu {referenz_id}...")
     bv = matcher.verlinke_variable_manuell(bv, variablenname, referenz_id)
     
+    # Manuelle Verlinkung ist eine Änderung: geaendert_am aktualisieren
+    bv.geaendert_am = datetime.now()
     # Speichern
     logger.debug(f"Speichere aktualisierte Berechnungsvorschrift {bv_id}...")
     rdf_service.speichere_berechnungsvorschrift(bv)
