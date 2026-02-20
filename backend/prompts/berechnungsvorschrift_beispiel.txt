@@ -1,55 +1,41 @@
 # Beispiele: Excel-Formel → Berechnungsvorschrift (JSON)
 
-Format: BEISPIEL-EINGABE (Zelleneingabe) gefolgt von GEWÜNSCHTES JSON-OUTPUT.
-Im Output: name (Platzhalter "N/A" – wird ignoriert, die Nutzer-Beschreibung wird als Name verwendet), formel, variablen, metadaten. Kein referenz_berechnungsvorschrift_id; jede Variable mit ist_primitive: true.
-Jede Wertquelle (Zellreferenz oder Tabellenspalte, die Werte liefert) = eine Variable. formel nur mit Variablennamen aus variablen[] (exakt); keine werttragenden Begriffe ohne Variable.
-Variablennamen im formel-String müssen exakt mit variablen[].name übereinstimmen.
-Zellreferenzen: zellenidentifikator setzen (z.B. "D7", "A9"). Tabellenspalten: kein zellenidentifikator. Matching nutzt Tabellenidentifikator, Tabellenblatt und Zellenidentifikator.
+Format: EINGABE (Tabellenidentifikator, Tabellenblatt, Zellenidentifikator, Beschreibung, Formel) → JSON.
+Regeln: name="N/A"; referenz_berechnungsvorschrift_id nie setzen. Jede Wertquelle = Variable; formel nur mit exakten Variablennamen. Zellreferenz → zellenidentifikator (ohne $); fremdes Blatt → tabellenblatt_referenz. metadaten: alle vier Felder (kategorie, symbol, datentyp, einheit) aus Kontext ableiten.
 
 ---
 
-BEISPIEL 1 – Einfache Formel, eine Variable
+BEISPIEL 1 – Einfach, eine Variable
 
-BEISPIEL-EINGABE:
+EINGABE:
 Tabellenidentifikator: Tabelle1
 Tabellenblatt: Sheet1
 Zellenidentifikator: A1
 Beschreibung: Monatliches Nettogehalt berechnen
 Formel: =B1/12
 
-GEWÜNSCHTES JSON-OUTPUT:
+JSON:
 {
   "name": "N/A",
   "formel": "Jahresnettogehalt / 12",
-  "variablen": [
-    {
-      "name": "Jahresnettogehalt",
-      "ist_primitive": true,
-      "zellenidentifikator": "B1"
-    }
-  ],
-  "metadaten": {
-    "kategorie": "Gehalt",
-    "symbol": "MNG",
-    "datentyp": "decimal",
-    "einheit": "EUR"
-  }
+  "variablen": [{"name": "Jahresnettogehalt", "ist_primitive": true, "zellenidentifikator": "B1"}],
+  "metadaten": {"kategorie": "Gehalt", "symbol": "MNG", "datentyp": "decimal", "einheit": "EUR"}
 }
 
-Erklärung: B1 wird aus der Beschreibung ("Nettogehalt") als "Jahresnettogehalt" interpretiert. Der Name "Jahresnettogehalt" erscheint exakt so in formel.
+Erklärung: B1 → Variable mit zellenidentifikator "B1". Matching findet BVs, deren quelle.zellenidentifikator=B1 im gleichen Blatt.
 
 ---
 
-BEISPIEL 2 – Excel-Funktion AVERAGE, mehrere Zellen
+BEISPIEL 2 – AVERAGE, mehrere Zellen
 
-BEISPIEL-EINGABE:
+EINGABE:
 Tabellenidentifikator: Tabelle1
 Tabellenblatt: Sheet1
 Zellenidentifikator: C10
 Beschreibung: Durchschnitt der Quartalsumsätze
 Formel: =AVERAGE(B1,B2,B3,B4)
 
-GEWÜNSCHTES JSON-OUTPUT:
+JSON:
 {
   "name": "N/A",
   "formel": "(Quartalsumsatz_1 + Quartalsumsatz_2 + Quartalsumsatz_3 + Quartalsumsatz_4) / 4",
@@ -59,28 +45,47 @@ GEWÜNSCHTES JSON-OUTPUT:
     {"name": "Quartalsumsatz_3", "ist_primitive": true, "zellenidentifikator": "B3"},
     {"name": "Quartalsumsatz_4", "ist_primitive": true, "zellenidentifikator": "B4"}
   ],
-  "metadaten": {
-    "kategorie": "Umsatz",
-    "symbol": "DQ",
-    "datentyp": "decimal",
-    "einheit": "EUR"
-  }
+  "metadaten": {"kategorie": "Umsatz", "symbol": "DQ", "datentyp": "decimal", "einheit": "EUR"}
 }
 
-Erklärung: AVERAGE wird in expliziten Pseudocode umgewandelt; jede Zelle (B1–B4) wird zu einer Variable mit sprechendem Namen. Alle vier Variablennamen kommen exakt in formel vor.
+Erklärung: AVERAGE → explizite Pseudocode; jede Zelle eigene Variable. SUMME(B1:B12) analog → Monatsumsatz_1…12.
 
 ---
 
-BEISPIEL 3 – Mehrere Variablen, Addition
+BEISPIEL 3 – IFERROR (nur Wert-Teil)
 
-BEISPIEL-EINGABE:
+EINGABE:
+Tabellenidentifikator: Tabelle1
+Tabellenblatt: Sheet1
+Zellenidentifikator: E5
+Beschreibung: Umsatz pro Einheit (ohne Fehleranzeige)
+Formel: =IFERROR(A1/B1;"-")
+
+JSON:
+{
+  "name": "N/A",
+  "formel": "Umsatz / Menge",
+  "variablen": [
+    {"name": "Umsatz", "ist_primitive": true, "zellenidentifikator": "A1"},
+    {"name": "Menge", "ist_primitive": true, "zellenidentifikator": "B1"}
+  ],
+  "metadaten": {"kategorie": "Umsatz", "symbol": "UPE", "datentyp": "decimal", "einheit": "EUR/Stk"}
+}
+
+Erklärung: IFERROR weglassen – nur A1/B1 umwandeln. Ersatzwert "-" und Fehlerbehandlung erscheinen nicht.
+
+---
+
+BEISPIEL 4 – Mehrere Variablen, Addition
+
+EINGABE:
 Tabellenidentifikator: Tabelle1
 Tabellenblatt: Sheet1
 Zellenidentifikator: D5
 Beschreibung: Gesamtkosten aus Material und Lohn
 Formel: =A1+B1+C1
 
-GEWÜNSCHTES JSON-OUTPUT:
+JSON:
 {
   "name": "N/A",
   "formel": "Materialkosten + Lohnkosten + Nebenkosten",
@@ -89,101 +94,23 @@ GEWÜNSCHTES JSON-OUTPUT:
     {"name": "Lohnkosten", "ist_primitive": true, "zellenidentifikator": "B1"},
     {"name": "Nebenkosten", "ist_primitive": true, "zellenidentifikator": "C1"}
   ],
-  "metadaten": {
-    "kategorie": "Kosten",
-    "symbol": "GK",
-    "datentyp": "decimal",
-    "einheit": "EUR"
-  }
+  "metadaten": {"kategorie": "Kosten", "symbol": "GK", "datentyp": "decimal", "einheit": "EUR"}
 }
 
-Erklärung: A1→Materialkosten, B1→Lohnkosten, C1→Nebenkosten aus der Beschreibung. Reihenfolge in variablen beliebig; Namen in formel exakt wie in variablen.
+Erklärung: Jede Zelle = Variable mit zellenidentifikator. Namen aus Beschreibung ableiten.
 
 ---
 
-BEISPIEL 4 – IFERROR: nur Wert-Teil übernehmen
+BEISPIEL 5 – SUMIFS/COUNTIFS, Tabellenspalte
 
-Fehlerbehandlungs-Funktionen (IFERROR, IFNA) nicht in den Pseudocode übernehmen. Nur den ersten Parameter (den eigentlichen Ausdruck) in Pseudocode umwandeln; Ersatzwert und Fehlerbehandlung weglassen.
-
-BEISPIEL-EINGABE:
-Tabellenidentifikator: Tabelle1
-Tabellenblatt: Sheet1
-Zellenidentifikator: E5
-Beschreibung: Umsatz pro Einheit (ohne Fehleranzeige)
-Formel: =IFERROR(A1/B1;"-")
-
-GEWÜNSCHTES JSON-OUTPUT:
-{
-  "name": "N/A",
-  "formel": "Umsatz / Menge",
-  "variablen": [
-    {"name": "Umsatz", "ist_primitive": true, "zellenidentifikator": "A1"},
-    {"name": "Menge", "ist_primitive": true, "zellenidentifikator": "B1"}
-  ],
-  "metadaten": {
-    "kategorie": "Umsatz",
-    "symbol": "UPE",
-    "datentyp": "decimal",
-    "einheit": "EUR/Stk"
-  }
-}
-
-Erklärung: Nur A1/B1 wird umgewandelt → "Umsatz / Menge". Der Ersatzwert "-" und die Fehlerbehandlung von IFERROR erscheinen nicht im Pseudocode.
-
----
-
-BEISPIEL 5 – SUMME mit Bereich
-
-BEISPIEL-EINGABE:
-Tabellenidentifikator: Tabelle1
-Tabellenblatt: Sheet1
-Zellenidentifikator: F10
-Beschreibung: Jahresgesamtumsatz aus Monatswerten
-Formel: =SUMME(B1:B12)
-
-GEWÜNSCHTES JSON-OUTPUT:
-{
-  "name": "N/A",
-  "formel": "Monatsumsatz_1 + Monatsumsatz_2 + Monatsumsatz_3 + Monatsumsatz_4 + Monatsumsatz_5 + Monatsumsatz_6 + Monatsumsatz_7 + Monatsumsatz_8 + Monatsumsatz_9 + Monatsumsatz_10 + Monatsumsatz_11 + Monatsumsatz_12",
-  "variablen": [
-    {"name": "Monatsumsatz_1", "ist_primitive": true, "zellenidentifikator": "B1"},
-    {"name": "Monatsumsatz_2", "ist_primitive": true, "zellenidentifikator": "B2"},
-    {"name": "Monatsumsatz_3", "ist_primitive": true, "zellenidentifikator": "B3"},
-    {"name": "Monatsumsatz_4", "ist_primitive": true, "zellenidentifikator": "B4"},
-    {"name": "Monatsumsatz_5", "ist_primitive": true, "zellenidentifikator": "B5"},
-    {"name": "Monatsumsatz_6", "ist_primitive": true, "zellenidentifikator": "B6"},
-    {"name": "Monatsumsatz_7", "ist_primitive": true, "zellenidentifikator": "B7"},
-    {"name": "Monatsumsatz_8", "ist_primitive": true, "zellenidentifikator": "B8"},
-    {"name": "Monatsumsatz_9", "ist_primitive": true, "zellenidentifikator": "B9"},
-    {"name": "Monatsumsatz_10", "ist_primitive": true, "zellenidentifikator": "B10"},
-    {"name": "Monatsumsatz_11", "ist_primitive": true, "zellenidentifikator": "B11"},
-    {"name": "Monatsumsatz_12", "ist_primitive": true, "zellenidentifikator": "B12"}
-  ],
-  "metadaten": {
-    "kategorie": "Umsatz",
-    "symbol": "JGU",
-    "datentyp": "decimal",
-    "einheit": "EUR"
-  }
-}
-
-Erklärung: SUMME(B1:B12) wird zu expliziten Variablen Monatsumsatz_1 bis Monatsumsatz_12; alle Namen kommen exakt in formel vor.
-
----
-
-BEISPIEL 6 – IFERROR + SUMIFS/COUNTIFS, Tabellenbezüge als Wertquellen = Variablen
-
-Formel nutzt IFERROR (nur Wert-Teil übernehmen), SUMIFS/COUNTIFS (bedingte Summe/Anzahl) und Tabellenbezüge.
-Jede Wertquelle wird zu einer Variable: (1) Zellreferenz A9 → "Ausbildungsstand"; (2) Tabellenspalte MAJahr1[Arbeitsstunden/ Jahr] (Summenbereich) → "Arbeitsstunden_pro_Jahr". Im formel nur diese Variablennamen verwenden.
-
-BEISPIEL-EINGABE:
+EINGABE:
 Tabellenidentifikator: MAJahr1
 Tabellenblatt: Sheet1
 Zellenidentifikator: B10
 Beschreibung: Durchschnittliche Arbeitsstunden pro Jahr nach Ausbildungsstand
-Formel: =IFERROR(SUMIFS(MAJahr1[Arbeitsstunden/ Jahr],MAJahr1[Ausbildungsstand],A9)/COUNTIFS(MAJahr1[Ausbildungsstand],A9)," ")
+Formel: =IFERROR(SUMIFS(MAJahr1[Arbeitsstunden/Jahr],MAJahr1[Ausbildungsstand],A9)/COUNTIFS(MAJahr1[Ausbildungsstand],A9)," ")
 
-GEWÜNSCHTES JSON-OUTPUT:
+JSON:
 {
   "name": "N/A",
   "formel": "Summe(Arbeitsstunden_pro_Jahr, gefiltert nach Ausbildungsstand) / Anzahl(gefiltert nach Ausbildungsstand)",
@@ -191,32 +118,23 @@ GEWÜNSCHTES JSON-OUTPUT:
     {"name": "Ausbildungsstand", "ist_primitive": true, "zellenidentifikator": "A9"},
     {"name": "Arbeitsstunden_pro_Jahr", "ist_primitive": true}
   ],
-  "metadaten": {
-    "kategorie": "Personal",
-    "symbol": "DAPJ",
-    "datentyp": "decimal",
-    "einheit": "h"
-  }
+  "metadaten": {"kategorie": "Personal", "symbol": "DAPJ", "datentyp": "decimal", "einheit": "h"}
 }
 
-Erklärung: IFERROR wird weggelassen (nur der erste Parameter wird umgewandelt). A9 → Variable "Ausbildungsstand" mit zellenidentifikator: "A9"; Tabellenspalte MAJahr1[Arbeitsstunden/ Jahr] (Summenbereich) → Variable "Arbeitsstunden_pro_Jahr" ohne zellenidentifikator (keine Einzelzelle). Beide Variablennamen erscheinen exakt so in formel.
+Erklärung: A9 (Zellreferenz) → zellenidentifikator "A9". Tabellenspalte MAJahr1[Arbeitsstunden/Jahr] (Summenbereich) → Variable ohne zellenidentifikator. IFERROR weglassen.
 
 ---
 
-BEISPIEL 7 – INDEX + MATCH (Tabelle, Zeilen- und Spaltenkriterium)
+BEISPIEL 6 – INDEX/MATCH
 
-INDEX(Tabelle, Zeile, Spalte) liefert den Wert an Position (Zeile, Spalte). MATCH liefert Zeile/Spalte aus Kriterien.
-Wertquellen: (1) Tabelle Lohn[] → Variable "Lohn_Tabelle"; (2) Zelle H9 (Ausbildungsstand) → Variable "Ausbildungsstand"; (3) Zelle I4 (Spaltenkopf) → Variable "Spaltenkopf". Lohn[Ausbildungsstand] und Lohn[#headers] sind Lookup-Bereiche, keine zusätzlichen Variablen.
-Für Auswertung mit echten Werten: operation = "index_lookup" setzen; Variablen-Reihenfolge zwingend: [Tabelle, Zeilenkriterium, Spaltenkriterium].
-
-BEISPIEL-EINGABE:
+EINGABE:
 Tabellenidentifikator: Lohn
 Tabellenblatt: Sheet1
 Zellenidentifikator: J10
 Beschreibung: Lohnwert aus Tabelle Lohn für Ausbildungsstand und Spaltenkopf
 Formel: =INDEX(Lohn[],MATCH(H9,Lohn[Ausbildungsstand],0),MATCH(I4,Lohn[#headers]))
 
-GEWÜNSCHTES JSON-OUTPUT:
+JSON:
 {
   "name": "N/A",
   "formel": "Wert aus Lohn_Tabelle an Zeile(Ausbildungsstand) und Spalte(Spaltenkopf)",
@@ -226,79 +144,28 @@ GEWÜNSCHTES JSON-OUTPUT:
     {"name": "Spaltenkopf", "ist_primitive": true, "zellenidentifikator": "I4"}
   ],
   "operation": "index_lookup",
-  "metadaten": {
-    "kategorie": "Personal",
-    "symbol": "LWT",
-    "datentyp": "decimal",
-    "einheit": "EUR"
-  }
+  "metadaten": {"kategorie": "Personal", "symbol": "LWT", "datentyp": "decimal", "einheit": "EUR"}
 }
 
-Erklärung: Lohn[] (Tabelle) → Variable "Lohn_Tabelle"; H9 → "Ausbildungsstand"; I4 → "Spaltenkopf". Reihenfolge der Variablen ist fest: (1) Tabelle, (2) Zeilenkriterium (H9), (3) Spaltenkriterium (I4) – für Auswertung mit echten Werten. operation = "index_lookup" kennzeichnet diese BV für 2D-Tabellenlookup. Alle drei Variablennamen erscheinen exakt in formel. Zellreferenzen H9 und I4 erhalten zellenidentifikator für Matching.
+Erklärung: operation="index_lookup" für 2D-Tabellenlookup. Variablenreihenfolge zwingend: (1) Tabelle, (2) Zeilenkriterium H9, (3) Spaltenkriterium I4. Auswertung: lookup(Tabelle, Zeilenkey, Spaltenkey). Lohn[Ausbildungsstand] und Lohn[#headers] sind Lookup-Bereiche, keine eigenen Variablen.
 
 ---
 
-BEISPIEL 8 – IFERROR mit Division (D7/D8)
+BEISPIEL 7 – Cross-Sheet
 
-Zelle E8 berechnet D7/D8. Variablen stammen aus D7 und D8. Das Matching findet vorhandene Berechnungsvorschriften anhand von Tabellenidentifikator, Tabellenblatt und Zellenidentifikator (quelle).
-
-BEISPIEL-EINGABE:
-Tabellenidentifikator: Tabelle1
-Tabellenblatt: Sheet1
-Zellenidentifikator: E8
-Beschreibung: Verhältnis berechnen
-Formel: =IFERROR(D7/D8," ")
-
-GEWÜNSCHTES JSON-OUTPUT:
-{
-  "name": "N/A",
-  "formel": "Dividend / Divisor",
-  "variablen": [
-    {"name": "Dividend", "ist_primitive": true, "zellenidentifikator": "D7"},
-    {"name": "Divisor", "ist_primitive": true, "zellenidentifikator": "D8"}
-  ],
-  "metadaten": {
-    "kategorie": "Berechnung",
-    "symbol": "VD",
-    "datentyp": "decimal",
-    "einheit": ""
-  }
-}
-
-Erklärung: IFERROR wird weggelassen. D7 → Variable "Dividend" mit zellenidentifikator: "D7"; D8 → Variable "Divisor" mit zellenidentifikator: "D8". Matching: BVs mit gleichem Tabellenidentifikator, Tabellenblatt und Zellenidentifikator (D7/D8) werden verlinkt.
-
----
-
-BEISPIEL 9 – Zellreferenz aus anderem Tabellenblatt (Cross-Sheet)
-
-Formel referenziert Zelle G19 im Tabellenblatt "1. Lohn AW", die Formel steht aber in einem anderen Blatt.
-Ohne tabellenblatt_referenz würde das Matching nur im Blatt der Formel suchen und die BV in "1. Lohn AW" nicht finden.
-
-BEISPIEL-EINGABE:
+EINGABE:
 Tabellenidentifikator: Tabelle1
 Tabellenblatt: Übersicht
 Zellenidentifikator: E10
 Beschreibung: Lohnanteil als Prozentwert
 Formel: =$'1. Lohn AW'.G19/100
 
-GEWÜNSCHTES JSON-OUTPUT:
+JSON:
 {
   "name": "N/A",
   "formel": "Lohnwert / 100",
-  "variablen": [
-    {
-      "name": "Lohnwert",
-      "ist_primitive": true,
-      "zellenidentifikator": "G19",
-      "tabellenblatt_referenz": "1. Lohn AW"
-    }
-  ],
-  "metadaten": {
-    "kategorie": "Personal",
-    "symbol": "LAP",
-    "datentyp": "decimal",
-    "einheit": "%"
-  }
+  "variablen": [{"name": "Lohnwert", "ist_primitive": true, "zellenidentifikator": "G19", "tabellenblatt_referenz": "1. Lohn AW"}],
+  "metadaten": {"kategorie": "Personal", "symbol": "LAP", "datentyp": "decimal", "einheit": "%"}
 }
 
-Erklärung: G19 liegt in "1. Lohn AW", nicht im Formel-Blatt "Übersicht". tabellenblatt_referenz: "1. Lohn AW" ist zwingend, damit das Matching die passende BV findet.
+Erklärung: G19 liegt im Blatt "1. Lohn AW", die Formel in "Übersicht". tabellenblatt_referenz zwingend – ohne dies sucht Matching nur im Formel-Blatt und findet die BV für G19 nicht.
