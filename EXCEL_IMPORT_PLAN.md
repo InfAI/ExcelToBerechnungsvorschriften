@@ -80,6 +80,7 @@ tabellenblaetter:
   - `beschreibung_quelle`: Woher die Beschreibung pro Zelle kommt (siehe Abschnitt 2); pro Tabelle konfigurierbar
   - `beschreibung_aus_zellen`: Nur bei `beschreibung_quelle: "zellen"` – definiert pro Tabelle, welche Zeilen/Spalten relativ zum Tabellenbereich die Beschreibung bilden
   - `wichtige_zellen`: Liste von Zellenidentifikatoren (z.B. `["D7", "E8", "F10"]`) – Formelzellen, deren Berechnungsvorschriften als „wichtig“ geflaggt werden.
+  - `formel_spalten` (optional): Liste von Spaltenbuchstaben (z.B. `["G"]` oder `["G", "H"]`). Wenn gesetzt, werden nur Zellen in diesen Spalten als Formelzellen importiert; die übrigen Spalten im Bereich dienen nur zur Beschreibungsermittlung (z.B. A21/A22 für erste_spalte_gleiche_zeile). Ohne Angabe: alle Spalten im Bereich.
 
 **Speicherort:** `backend/config/excel_import_config.yaml`
 

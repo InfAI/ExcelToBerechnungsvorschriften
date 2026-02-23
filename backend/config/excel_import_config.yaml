@@ -22,15 +22,18 @@ tabellenblaetter:
   # 2. Arbeitszeit AW – 8 Tabellen (Bereiche an Excel anpassen!)
   - name: "2. Arbeitszeit AW"
     tabellen:
-      - id: "Vollzeit"
-        bereich: "A5:H18"
-        beschreibung_quelle: "zellen"
-        beschreibung_aus_zellen:
-          erste_spalte_gleiche_zeile: true
-          gleiche_spalte_erste_n_zeilen: 2
-          trennzeichen: " – "
+      # - id: "Vollzeit"
+      #   bereich: "A5:H18"
+      #   beschreibung_quelle: "zellen"
+      #   beschreibung_aus_zellen:
+      #     erste_spalte_gleiche_zeile: true
+      #     gleiche_spalte_erste_n_zeilen: 2
+      #     trennzeichen: " – "
       - id: "Auswertung"
         bereich: "A21:G22"
+        # Nur Spalte G als Formelzellen – A21/A22 nur für Beschreibung (erste_spalte_gleiche_zeile)
+        formel_spalten: ["G"]
+        wichtige_zellen: ["G21", "G22"]
         beschreibung_quelle: "zellen"
         beschreibung_aus_zellen:
           erste_spalte_gleiche_zeile: true

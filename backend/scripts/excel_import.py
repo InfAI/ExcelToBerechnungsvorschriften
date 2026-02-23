@@ -29,7 +29,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import yaml
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
-from openpyxl.utils.cell import range_boundaries
+from openpyxl.utils.cell import range_boundaries, column_index_from_string
+from openpyxl.worksheet.formula import ArrayFormula
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -228,16 +229,39 @@ def zelleneingaben_aus_excel(config_path: str, excel_path: str) -> list:
                 logger.warning(f"Tabelle {t_id}: {e}")
                 continue
 
+            # Optional: Nur bestimmte Spalten als Formelzellen verarbeiten (z.B. formel_spalten: ["G"])
+            # Ohne Angabe: alle Spalten im Bereich außer Beschreibungszellen
+            formel_spalten = tabelle.get("formel_spalten")  # Liste von Buchstaben: ["G"] oder ["G", "H"]
+            formel_col_indices = None
+            if formel_spalten:
+                formel_col_indices = set()
+                for sp in formel_spalten:
+                    try:
+                        formel_col_indices.add(column_index_from_string(str(sp).strip().upper()))
+                    except (ValueError, TypeError):
+                        pass
+                if not formel_col_indices:
+                    formel_col_indices = None  # Keine gültigen Spalten – Filter ignorieren
+
             for row in range(min_row, max_row + 1):
                 for col in range(min_col, max_col + 1):
                     # Beschreibungszellen (Überschriften, Zeilen-/Spaltenbeschriftung) überspringen
                     if ist_beschreibungszelle(row, col, min_row, min_col, tabelle):
                         continue
+                    # Optional: Nur konfigurierte Formel-Spalten verarbeiten (Rest nur für Beschreibung)
+                    if formel_col_indices is not None and col not in formel_col_indices:
+                        continue
                     cell = ws.cell(row=row, column=col)
                     val = cell.value
-                    if not val or not str(val).strip().startswith("="):
+                    # Formel extrahieren: normale Zellen haben String "=...", ArrayFormulas haben .text
+                    if isinstance(val, ArrayFormula) and getattr(val, "text", None):
+                        formel = val.text.strip() if isinstance(val.text, str) else ""
+                    elif val and isinstance(val, str) and val.strip().startswith("="):
+                        formel = val.strip()
+                    else:
                         continue
-                    formel = str(val).strip()
+                    if not formel or not formel.startswith("="):
+                        continue
                     zellen_ref = zelle_zu_ref(row, col)
                     beschreibung = beschreibung_ermitteln(
                         ws, cell, row, col, min_row, min_col, tabelle
