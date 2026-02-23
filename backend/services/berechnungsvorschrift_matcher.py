@@ -11,6 +11,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from models.berechnungsvorschrift import Berechnungsvorschrift, Variable
 from services.rdf_service import RDFService
+from utils.formel_utils import excel_identifikatoren_aus_formel
 
 logger = logging.getLogger(__name__)
 
@@ -205,12 +206,10 @@ class BerechnungsvorschriftMatcher:
             
             # 2. Priorität: Excel-Identifikator (Variable.name passt zu Excel-Identifikator in formel_original
             # oder var.name hat Excel-Identifikator-Muster wie _1_Wert)
-            # Excel-Identifikatoren in Formeln: z.B. _1_Wert, _2_Kosten (Muster: _ + alphanumerisch)
+            # Excel-Identifikatoren: z.B. _1_Wert, _2_Kosten; _xlfn etc. ausgeschlossen (keine Named Ranges)
             if not passende and var.name:
-                excel_identifiers_in_formel = set()
                 formel_orig = getattr(berechnungsvorschrift, "formel_original", None) or ""
-                if formel_orig:
-                    excel_identifiers_in_formel = set(re.findall(r'_[\w]+', formel_orig))
+                excel_identifiers_in_formel = excel_identifikatoren_aus_formel(formel_orig)
                 # Suche, wenn var.name in formel_original vorkommt ODER var.name dem Excel-Muster entspricht
                 is_excel_id = var.name in excel_identifiers_in_formel or bool(re.match(r'^_[\w]+$', var.name))
                 if is_excel_id:

@@ -41,41 +41,47 @@ flowchart TB
 
 **Struktur (Beispiel):**
 
+Hierarchie: **Tabellenidentifikator → Tabellenblatt → Tabellen**
+
 ```yaml
 excel_datei: "Pfad/zur/datei.xlsx"
-tabellenblaetter:
-  - name: "1. Lohn AW"
-    tabellen:
-      - id: "Tabelle1"
-        bereich: "A5:F16"
-        beschreibung_quelle: "zellen"
-        beschreibung_aus_zellen:
-          erste_spalte_gleiche_zeile: true
-          gleiche_spalte_erste_n_zeilen: 2
-          trennzeichen: " – "
-        wichtige_zellen: ["D7", "E8", "F10"]
-      - id: "Tabelle7"
-        bereich: "J25:K29"
-        beschreibung_quelle: "kommentar"
-        wichtige_zellen: ["J26", "K27"]
-  - name: "2. Gehalt"
-    tabellen:
-      - id: "Tabelle1"
-        bereich: "B3:E15"
-        beschreibung_quelle: "zellen"
-        beschreibung_aus_zellen:
-          erste_spalte_gleiche_zeile: true
-          gleiche_spalte_erste_n_zeilen: 1
-          trennzeichen: " – "
+tabellenidentifikatoren:
+  - id: "Vollzeit"
+    tabellenblaetter:
+      - name: "1. Lohn AW"
+        tabellen:
+          - bereich: "A5:F16"
+            beschreibung_quelle: "zellen"
+            beschreibung_aus_zellen:
+              erste_spalte_gleiche_zeile: true
+              gleiche_spalte_erste_n_zeilen: 2
+              trennzeichen: " – "
+            wichtige_zellen: ["D7", "E8", "F10"]
+      - name: "2. Gehalt"
+        tabellen:
+          - bereich: "B3:E15"
+            beschreibung_quelle: "zellen"
+            beschreibung_aus_zellen:
+              erste_spalte_gleiche_zeile: true
+              gleiche_spalte_erste_n_zeilen: 1
+              trennzeichen: " – "
+  - id: "Auswertung"
+    tabellenblaetter:
+      - name: "1. Lohn AW"
+        tabellen:
+          - bereich: "J25:K29"
+            beschreibung_quelle: "kommentar"
+            wichtige_zellen: ["J26", "K27"]
 ```
 
 **Felder:**
 
 - `excel_datei`: Pfad zur Excel-Datei
 - `formel_ersetzung` (optional): Mapping Formel → Text. Wenn eine Beschreibung eine Formel enthält (z.B. weil Referenzzellen Formeln haben), wird sie durch den Text ersetzt. Beispiel: `"=$'INTERN BEZÜGE'.$D$3": "Vollzeit festangestellt"`
-- `tabellenblaetter`: Liste der zu ladenden Blätter mit Namen
-- Pro Blatt: `tabellen[]` mit:
-  - `id` (wird zu `tabellenidentifikator`)
+- `tabellenidentifikatoren`: Liste der Tabellenidentifikatoren (oberste Ebene). Jeder hat:
+  - `id`: wird zu `tabellenidentifikator` für alle Tabellen darunter
+  - `tabellenblaetter`: Liste der Blätter mit `name` und `tabellen[]`
+- Pro Tabelle (unter `tabellen[]`):
   - `bereich` (z.B. A5:F16)
   - `beschreibung_quelle`: Woher die Beschreibung pro Zelle kommt (siehe Abschnitt 2); pro Tabelle konfigurierbar
   - `beschreibung_aus_zellen`: Nur bei `beschreibung_quelle: "zellen"` – definiert pro Tabelle, welche Zeilen/Spalten relativ zum Tabellenbereich die Beschreibung bilden

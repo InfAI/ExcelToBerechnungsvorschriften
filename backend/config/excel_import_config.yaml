@@ -1,40 +1,31 @@
 # Beispiel-Konfiguration für den halb-automatisierten Excel-Import
-# Anpassen: excel_datei, Tabellenblätter, Tabellen und Bereiche an Ihre Excel-Datei.
+# Anpassen: excel_datei, Tabellenidentifikatoren, Tabellenblätter und Tabellen an Ihre Excel-Datei.
 #
-# formel_ersetzung (optional): Formeln, die in Beschreibungen vorkommen, werden durch Texte ersetzt
+# Hierarchie: Tabellenidentifikator -> Tabellenblatt -> Tabellen
 #
-# Pro Tabelle:
-# - id: wird zu tabellenidentifikator
-# - bereich: Zellbereich (z.B. A5:F16)
-# - beschreibung_quelle: zellen | kommentar | links | oben | formel | manuell
-# - beschreibung_aus_zellen: nur bei beschreibung_quelle "zellen"
-# - wichtige_zellen: Liste von Zellenidentifikatoren für "wichtige" BVs (optional)
+# formel_ersetzung (optional): Formeln in Beschreibungen durch Texte ersetzen
 
 excel_datei: "/home/kurtjunghanns/Documents/2023 - RegioNachhaltigkeit/Daten_Massnahmenkatalog/BERECHNUNGEN_Soziales_V3_2025_09_30.xlsx"
 
-# Formeln in Zellbeschreibungen durch lesbare Texte ersetzen (z.B. wenn Referenzzellen Formeln enthalten)
 formel_ersetzung:
-  # Excel/openpyxl nutzt ! zwischen Blatt und Zelle: 'Blatt'!$D$3
   "='INTERN BEZÜGE'!$D$3": "Vollzeit festangestellt"
 
-tabellenblaetter:
-
-  # 2. Arbeitszeit AW – 8 Tabellen (Bereiche an Excel anpassen!)
-  - name: "2. Arbeitszeit AW"
-    tabellen:
-      # - id: "Vollzeit"
-      #   bereich: "A5:H18"
-      #   beschreibung_quelle: "zellen"
-      #   beschreibung_aus_zellen:
-      #     erste_spalte_gleiche_zeile: true
-      #     gleiche_spalte_erste_n_zeilen: 2
-      #     trennzeichen: " – "
-      - id: "Auswertung"
-        bereich: "A21:G22"
-        # Nur Spalte G als Formelzellen – A21/A22 nur für Beschreibung (erste_spalte_gleiche_zeile)
-        formel_spalten: ["G"]
-        wichtige_zellen: ["G21", "G22"]
-        beschreibung_quelle: "zellen"
-        beschreibung_aus_zellen:
-          erste_spalte_gleiche_zeile: true
-          trennzeichen: " – "
+# Hierarchie: Tabellenidentifikator (Name) -> Tabellenblatt -> Tabellen (mit bereich, beschreibung_quelle, …)
+tabellenidentifikatoren:
+  - id: "Soziales"
+    tabellenblaetter:
+      - name: "2. Arbeitszeit AW"
+        tabellen:
+          # - bereich: "A5:H18"
+          #   beschreibung_quelle: "zellen"
+          #   beschreibung_aus_zellen:
+          #     erste_spalte_gleiche_zeile: true
+          #     gleiche_spalte_erste_n_zeilen: 2
+          #     trennzeichen: " – "
+          - bereich: "A21:G22"
+            formel_spalten: ["G"]
+            wichtige_zellen: ["G21", "G22"]
+            beschreibung_quelle: "zellen"
+            beschreibung_aus_zellen:
+              erste_spalte_gleiche_zeile: true
+              trennzeichen: " – "

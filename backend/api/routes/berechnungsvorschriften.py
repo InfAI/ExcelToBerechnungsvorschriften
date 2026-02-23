@@ -18,6 +18,7 @@ from services.llm_service import LLMService
 from services.rdf_service import RDFService
 from services.berechnungsvorschrift_matcher import BerechnungsvorschriftMatcher
 from services.versionierung_service import VersionierungService
+from utils.formel_utils import formel_excel_normalisieren
 
 router = APIRouter()
 
@@ -40,6 +41,8 @@ async def erstelle_berechnungsvorschrift(request: BerechnungsvorschriftErstellen
     - Speichert in Fuseki
     """
     ze = request.zelleneingabe
+    # Excel-interne Präfixe (_xlfn.IFS etc.) aus Formel entfernen
+    ze.formel = formel_excel_normalisieren(ze.formel)
     logger.info(f"Erstelle Berechnungsvorschrift: {ze.zellenidentifikator} ({ze.tabellenblatt})")
     try:
         # Prüfen, ob bereits eine BV mit gleicher Quelle existiert (Tabellen-ID + Blatt + Zelle)
@@ -302,6 +305,7 @@ async def regeneriere_berechnungsvorschrift(
     Regeneriert eine Berechnungsvorschrift mit LLM
     """
     logger.info(f"Regeneriere Berechnungsvorschrift: {bv_id}")
+    zelleneingabe.formel = formel_excel_normalisieren(zelleneingabe.formel)
     alte_bv = rdf_service.lade_berechnungsvorschrift(bv_id)
     if not alte_bv:
         logger.warning(f"Berechnungsvorschrift {bv_id} nicht gefunden für Regenerierung")

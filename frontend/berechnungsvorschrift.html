@@ -144,8 +144,8 @@
                     <p class="mb-3">Variable <strong id="verlinken-var-name"></strong> mit einer Berechnungsvorschrift verlinken:</p>
                     <div class="mb-3">
                         <label for="verlinken-suche" class="form-label">Suchen (optional)</label>
-                        <input type="text" class="form-control" id="verlinken-suche" placeholder="Name, Kategorie, Symbol..." aria-describedby="verlinken-suche-help">
-                        <div id="verlinken-suche-help" class="form-text">Leer lassen für alle Berechnungsvorschriften</div>
+                        <input type="text" class="form-control" id="verlinken-suche" placeholder="Name, Kategorie, Symbol, Zelle (z.B. D7, G21)..." aria-describedby="verlinken-suche-help">
+                        <div id="verlinken-suche-help" class="form-text">Leer lassen für alle Berechnungsvorschriften. Zellreferenz (D7, G21) sucht nach Quelle.</div>
                     </div>
                     <div id="verlinken-vorgeschlagen-container" class="mb-3 d-none">
                         <h6 class="text-success">Vorgeschlagen (passender Excel-Identifikator)</h6>
@@ -489,6 +489,15 @@
         let verlinkenVariablenname = null;
         let verlinkenBvsCache = [];
 
+        /** Formatiert Quelle als "Tabellenidentifikator / Tabellenblatt · Zelle" */
+        function formatQuelleInfo(bv) {
+            const q = bv.quelle;
+            if (!q || (!q.tabellenidentifikator && !q.tabellenblatt && !q.zellenidentifikator)) return '';
+            const seg1 = [q.tabellenidentifikator, q.tabellenblatt].filter(Boolean).join(' / ');
+            const seg2 = q.zellenidentifikator || '';
+            return seg1 && seg2 ? `${seg1} · ${seg2}` : (seg1 || seg2);
+        }
+
         async function verlinkenModalOeffnen(variablenname) {
             if (!aktuelleBerechnungsvorschrift) return;
             verlinkenVariablenname = variablenname;
@@ -521,17 +530,20 @@
             );
             if (vorgeschlagen.length > 0) {
                 vorgeschlagenContainer.classList.remove('d-none');
-                vorgeschlagenListe.innerHTML = vorgeschlagen.map(bv => `
+                vorgeschlagenListe.innerHTML = vorgeschlagen.map(bv => {
+                    const quelleInfo = formatQuelleInfo(bv);
+                    return `
                     <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bv-id="${bv.id}">
                         <div>
                             <strong>${bv.name}</strong>
                             <span class="badge bg-success ms-2">Excel-Identifikator passt</span>
                             <span class="badge bg-info ms-1">${bv.metadaten?.symbol || '-'}</span>
                             <small class="text-muted d-block">${bv.metadaten?.kategorie || ''} · ${bv.metadaten?.einheit || ''}</small>
+                            ${quelleInfo ? `<small class="text-muted d-block mt-1">${quelleInfo}</small>` : ''}
                         </div>
                         <small class="text-muted">${bv.id.substring(0, 8)}...</small>
-                    </li>
-                `).join('');
+                    </li>`;
+                }).join('');
                 vorgeschlagenListe.querySelectorAll('.list-group-item-action').forEach(li => {
                     li.addEventListener('click', () => verlinkeVariableManuell(li.getAttribute('data-bv-id')));
                 });
@@ -541,25 +553,36 @@
 
             // Normale Liste (ohne vorgeschlagene, die bereits oben stehen)
             const vorgeschlagenIds = new Set(vorgeschlagen.map(bv => bv.id));
+            const suchfelder = bv => [
+                bv.name,
+                bv.metadaten?.kategorie,
+                bv.metadaten?.symbol,
+                bv.metadaten?.einheit,
+                bv.quelle?.zellenidentifikator,
+                bv.quelle?.tabellenidentifikator,
+                bv.quelle?.tabellenblatt
+            ].filter(Boolean);
             const gefiltert = verlinkenBvsCache
                 .filter(bv => bv.id !== aktuelleBerechnungsvorschrift.id && !vorgeschlagenIds.has(bv.id))
-                .filter(bv => !suchbegriff || [bv.name, bv.metadaten?.kategorie, bv.metadaten?.symbol, bv.metadaten?.einheit]
-                    .filter(Boolean).join(' ').toLowerCase().includes(suchbegriff));
+                .filter(bv => !suchbegriff || suchfelder(bv).join(' ').toLowerCase().includes(suchbegriff));
             if (gefiltert.length === 0 && vorgeschlagen.length === 0) {
                 liste.innerHTML = '<li class="list-group-item text-muted">Keine passenden Berechnungsvorschriften gefunden</li>';
             } else if (gefiltert.length === 0) {
                 liste.innerHTML = '';
             } else {
-                liste.innerHTML = gefiltert.map(bv => `
+                liste.innerHTML = gefiltert.map(bv => {
+                    const quelleInfo = formatQuelleInfo(bv);
+                    return `
                     <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-bv-id="${bv.id}">
                         <div>
                             <strong>${bv.name}</strong>
                             <span class="badge bg-info ms-2">${bv.metadaten?.symbol || '-'}</span>
                             <small class="text-muted d-block">${bv.metadaten?.kategorie || ''} · ${bv.metadaten?.einheit || ''}</small>
+                            ${quelleInfo ? `<small class="text-muted d-block mt-1">${quelleInfo}</small>` : ''}
                         </div>
                         <small class="text-muted">${bv.id.substring(0, 8)}...</small>
-                    </li>
-                `).join('');
+                    </li>`;
+                }).join('');
                 liste.querySelectorAll('.list-group-item-action').forEach(li => {
                     li.addEventListener('click', () => verlinkeVariableManuell(li.getAttribute('data-bv-id')));
                 });

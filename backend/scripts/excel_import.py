@@ -32,8 +32,48 @@ from openpyxl.utils import get_column_letter
 from openpyxl.utils.cell import range_boundaries, column_index_from_string
 from openpyxl.worksheet.formula import ArrayFormula
 
+from utils.formel_utils import formel_excel_normalisieren
+
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
+
+
+def _config_zu_triplets(config: dict) -> list:
+    """
+    Konfiguration in Triplets (tabellenidentifikator, blatt_name, tabelle) auflösen.
+
+    Unterstützt zwei Strukturen:
+    - Neu: tabellenidentifikatoren -> tabellenblaetter -> tabellen (id auf oberster Ebene)
+    - Alt: tabellenblaetter -> tabellen (id pro Tabelle)
+
+    Returns:
+        Liste von (tabellenidentifikator, blatt_name, tabelle_config)
+    """
+    result = []
+
+    # Neue Hierarchie: Tabellenidentifikator -> Tabellenblatt -> Tabellen
+    for tid_block in config.get("tabellenidentifikatoren", []):
+        t_id = tid_block.get("id", "Tabelle1")
+        for blatt in tid_block.get("tabellenblaetter", []):
+            blatt_name = blatt.get("name")
+            if not blatt_name:
+                logger.warning("Tabellenblatt ohne Namen übersprungen")
+                continue
+            for tabelle in blatt.get("tabellen", []):
+                result.append((t_id, blatt_name, tabelle))
+
+    # Fallback: alte Struktur tabellenblaetter -> tabellen (id pro Tabelle)
+    if not result:
+        for blatt in config.get("tabellenblaetter", []):
+            blatt_name = blatt.get("name")
+            if not blatt_name:
+                logger.warning("Tabellenblatt ohne Namen übersprungen")
+                continue
+            for tabelle in blatt.get("tabellen", []):
+                t_id = tabelle.get("id", "Tabelle1")
+                result.append((t_id, blatt_name, tabelle))
+
+    return result
 
 
 def parse_range(bereich: str) -> tuple:
@@ -203,82 +243,82 @@ def zelleneingaben_aus_excel(config_path: str, excel_path: str) -> list:
     # Optional: Formeln in Beschreibungen durch lesbare Texte ersetzen
     formel_ersetzung = config.get("formel_ersetzung") or {}
 
-    for blatt in config.get("tabellenblaetter", []):
-        blatt_name = blatt.get("name")
-        if not blatt_name:
-            logger.warning("Tabellenblatt ohne Namen übersprungen")
-            continue
+    # Konfiguration in Triplets (tabellenidentifikator, blatt_name, tabelle) auflösen
+    # Neue Hierarchie: tabellenidentifikatoren -> tabellenblaetter -> tabellen
+    # Fallback: alte Struktur tabellenblaetter -> tabellen (id pro Tabelle)
+    config_triplets = _config_zu_triplets(config)
 
+    for t_id, blatt_name, tabelle in config_triplets:
         ws = wb[blatt_name] if blatt_name in wb.sheetnames else None
         if not ws:
             logger.warning(f"Tabellenblatt '{blatt_name}' nicht gefunden, übersprungen")
             continue
 
-        for tabelle in blatt.get("tabellen", []):
-            t_id = tabelle.get("id", "Tabelle1")
-            bereich = tabelle.get("bereich")
-            wichtige_zellen = set(tabelle.get("wichtige_zellen") or [])
+        bereich = tabelle.get("bereich")
+        wichtige_zellen = set(tabelle.get("wichtige_zellen") or [])
 
-            if not bereich:
-                logger.warning(f"Tabelle {t_id} ohne Bereich übersprungen")
-                continue
+        if not bereich:
+            logger.warning(f"Tabelle {t_id} ohne Bereich übersprungen")
+            continue
 
-            try:
-                min_row, min_col, max_row, max_col = parse_range(bereich)
-            except ValueError as e:
-                logger.warning(f"Tabelle {t_id}: {e}")
-                continue
+        try:
+            min_row, min_col, max_row, max_col = parse_range(bereich)
+        except ValueError as e:
+            logger.warning(f"Tabelle {t_id}: {e}")
+            continue
 
-            # Optional: Nur bestimmte Spalten als Formelzellen verarbeiten (z.B. formel_spalten: ["G"])
-            # Ohne Angabe: alle Spalten im Bereich außer Beschreibungszellen
-            formel_spalten = tabelle.get("formel_spalten")  # Liste von Buchstaben: ["G"] oder ["G", "H"]
-            formel_col_indices = None
-            if formel_spalten:
-                formel_col_indices = set()
-                for sp in formel_spalten:
-                    try:
-                        formel_col_indices.add(column_index_from_string(str(sp).strip().upper()))
-                    except (ValueError, TypeError):
-                        pass
-                if not formel_col_indices:
-                    formel_col_indices = None  # Keine gültigen Spalten – Filter ignorieren
+        # Optional: Nur bestimmte Spalten als Formelzellen verarbeiten (z.B. formel_spalten: ["G"])
+        # Ohne Angabe: alle Spalten im Bereich außer Beschreibungszellen
+        formel_spalten = tabelle.get("formel_spalten")  # Liste von Buchstaben: ["G"] oder ["G", "H"]
+        formel_col_indices = None
+        if formel_spalten:
+            formel_col_indices = set()
+            for sp in formel_spalten:
+                try:
+                    formel_col_indices.add(column_index_from_string(str(sp).strip().upper()))
+                except (ValueError, TypeError):
+                    pass
+            if not formel_col_indices:
+                formel_col_indices = None  # Keine gültigen Spalten – Filter ignorieren
 
-            for row in range(min_row, max_row + 1):
-                for col in range(min_col, max_col + 1):
-                    # Beschreibungszellen (Überschriften, Zeilen-/Spaltenbeschriftung) überspringen
-                    if ist_beschreibungszelle(row, col, min_row, min_col, tabelle):
-                        continue
-                    # Optional: Nur konfigurierte Formel-Spalten verarbeiten (Rest nur für Beschreibung)
-                    if formel_col_indices is not None and col not in formel_col_indices:
-                        continue
-                    cell = ws.cell(row=row, column=col)
-                    val = cell.value
-                    # Formel extrahieren: normale Zellen haben String "=...", ArrayFormulas haben .text
-                    if isinstance(val, ArrayFormula) and getattr(val, "text", None):
-                        formel = val.text.strip() if isinstance(val.text, str) else ""
-                    elif val and isinstance(val, str) and val.strip().startswith("="):
-                        formel = val.strip()
-                    else:
-                        continue
-                    if not formel or not formel.startswith("="):
-                        continue
-                    zellen_ref = zelle_zu_ref(row, col)
-                    beschreibung = beschreibung_ermitteln(
-                        ws, cell, row, col, min_row, min_col, tabelle
-                    )
-                    beschreibung = formel_ersetzung_anwenden(beschreibung, formel_ersetzung)
-                    wichtig = zellen_ref in wichtige_zellen
+        for row in range(min_row, max_row + 1):
+            for col in range(min_col, max_col + 1):
+                # Beschreibungszellen (Überschriften, Zeilen-/Spaltenbeschriftung) überspringen
+                if ist_beschreibungszelle(row, col, min_row, min_col, tabelle):
+                    continue
+                # Optional: Nur konfigurierte Formel-Spalten verarbeiten (Rest nur für Beschreibung)
+                if formel_col_indices is not None and col not in formel_col_indices:
+                    continue
+                cell = ws.cell(row=row, column=col)
+                val = cell.value
+                # Formel extrahieren: normale Zellen haben String "=...", ArrayFormulas haben .text
+                if isinstance(val, ArrayFormula) and getattr(val, "text", None):
+                    formel = val.text.strip() if isinstance(val.text, str) else ""
+                elif val and isinstance(val, str) and val.strip().startswith("="):
+                    formel = val.strip()
+                else:
+                    continue
+                if not formel or not formel.startswith("="):
+                    continue
+                # Excel-interne Präfixe entfernen (_xlfn.IFS -> IFS), damit Formel lesbar bleibt
+                formel = formel_excel_normalisieren(formel)
+                zellen_ref = zelle_zu_ref(row, col)
+                beschreibung = beschreibung_ermitteln(
+                    ws, cell, row, col, min_row, min_col, tabelle
+                )
+                beschreibung = formel_ersetzung_anwenden(beschreibung, formel_ersetzung)
+                wichtig = zellen_ref in wichtige_zellen
 
-                    ze = {
-                        "tabellenidentifikator": t_id,
-                        "tabellenblatt": blatt_name,
-                        "zellenidentifikator": zellen_ref,
-                        "beschreibung": beschreibung or formel[:50],
-                        "formel": formel,
-                        "wichtig": wichtig,
-                    }
-                    zelleneingaben.append(ze)
-                    logger.debug(f"Zelleneingabe: {zellen_ref} ({t_id}, {blatt_name})")
+                ze = {
+                    "tabellenidentifikator": t_id,
+                    "tabellenblatt": blatt_name,
+                    "zellenidentifikator": zellen_ref,
+                    "beschreibung": beschreibung or formel[:50],
+                    "formel": formel,
+                    "wichtig": wichtig,
+                }
+                zelleneingaben.append(ze)
+                logger.debug(f"Zelleneingabe: {zellen_ref} ({t_id}, {blatt_name})")
 
     wb.close()
     return zelleneingaben
