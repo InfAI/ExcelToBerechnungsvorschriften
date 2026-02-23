@@ -25,6 +25,8 @@ services:
       - FUSEKI_PASSWORD=${FUSEKI_PASSWORD}
     volumes:
       - ./backend:/app
+      # Excel-Dateien für Import-Script (z.B. excel_import.py --excel /app/excel_data/BERECHNUNGEN_Soziales_V3_2025_09_30.xlsx)
+      - /home/kurtjunghanns/Documents/2023 - RegioNachhaltigkeit/Daten_Massnahmenkatalog:/app/excel_data:ro
     depends_on:
       - fuseki
     restart: unless-stopped
