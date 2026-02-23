@@ -85,6 +85,14 @@
                         <div class="form-text">Manche Excel-Zellen erhalten einen Identifikator (z.B. _1_Wert), auf den in Formeln verwiesen wird.</div>
                     </div>
 
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="wichtig" value="1">
+                            <label class="form-check-label" for="wichtig">Wichtige Berechnungsvorschrift</label>
+                        </div>
+                        <div class="form-text">Markiert diese BV als wichtig (wird in Listen hervorgehoben angezeigt).</div>
+                    </div>
+
                     <button type="submit" class="btn btn-primary" id="submit-btn">
                         <span class="spinner-border spinner-border-sm d-none" id="loading-spinner"></span>
                         Berechnungsvorschrift generieren
@@ -132,8 +140,9 @@
             submitBtn.disabled = true;
             spinner.classList.remove('d-none');
             
-            // Zellendaten sammeln (Kategorie und Excel-Identifikator optional)
+            // Zellendaten sammeln (Kategorie, Excel-Identifikator und wichtig optional)
             const excelId = document.getElementById('excel-identifikator').value.trim();
+            const wichtigChecked = document.getElementById('wichtig').checked;
             const zelleneingabe = {
                 tabellenidentifikator: document.getElementById('tabellenidentifikator').value,
                 tabellenblatt: document.getElementById('tabellenblatt').value,
@@ -141,7 +150,8 @@
                 beschreibung: document.getElementById('beschreibung').value,
                 formel: document.getElementById('formel').value,
                 kategorie: document.getElementById('kategorie').value.trim() || undefined,
-                excel_identifikator: excelId || undefined
+                excel_identifikator: excelId || undefined,
+                wichtig: wichtigChecked || undefined
             };
             
             try {
@@ -177,7 +187,7 @@
             const container = document.getElementById('ergebnis-content');
             
             let html = `
-                <h6>${bv.name}</h6>
+                <h6>${bv.name} ${bv.wichtig ? '<span class="badge bg-warning text-dark ms-2">Wichtig</span>' : ''}</h6>
                 <p class="mb-2"><strong>Formel:</strong> <code>${bv.formel}</code></p>
                 ${bv.formel_original ? `<p class="mb-2"><strong>Originale Excel-Formel:</strong> <code class="bg-light px-2 py-1 rounded">${bv.formel_original}</code></p>` : ''}
                 ${bv.excel_identifikator ? `<p class="mb-2"><strong>Excel-Identifikator:</strong> <code>${bv.excel_identifikator}</code></p>` : ''}

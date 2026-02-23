@@ -39,7 +39,10 @@
 
         <div id="content-container" class="d-none">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 id="bv-name">Berechnungsvorschrift</h1>
+                <div class="d-flex align-items-center gap-2">
+                    <h1 id="bv-name">Berechnungsvorschrift</h1>
+                    <span id="bv-wichtig-badge" class="badge bg-warning text-dark d-none">Wichtig</span>
+                </div>
                 <div>
                     <button class="btn btn-primary" onclick="bearbeiteBerechnungsvorschrift()">Bearbeiten</button>
                     <button class="btn btn-danger" onclick="loescheBerechnungsvorschrift()">Löschen</button>
@@ -209,6 +212,12 @@
                             <input type="text" class="form-control" id="edit-excel-identifikator"
                                    placeholder="z.B. _1_Wert – stammt aus Excel">
                         </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="edit-wichtig">
+                                <label class="form-check-label" for="edit-wichtig">Wichtige Berechnungsvorschrift</label>
+                            </div>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -260,6 +269,13 @@
         function zeigeBerechnungsvorschrift(bv, verwendetIn, verwendet) {
             // Grunddaten
             document.getElementById('bv-name').textContent = bv.name;
+            // Wichtig-Badge anzeigen/verbergen
+            const wichtigBadge = document.getElementById('bv-wichtig-badge');
+            if (bv.wichtig) {
+                wichtigBadge.classList.remove('d-none');
+            } else {
+                wichtigBadge.classList.add('d-none');
+            }
             document.getElementById('bv-formel').innerHTML = formatiereFormelMitVariablen(bv.formel, bv.variablen || [], bv.id);
             // Originale Excel-Formel – nur informativ, nicht bearbeitbar
             const formelOriginalRow = document.getElementById('bv-formel-original-row');
@@ -401,6 +417,7 @@
             document.getElementById('edit-datentyp').value = aktuelleBerechnungsvorschrift.metadaten.datentyp;
             document.getElementById('edit-einheit').value = aktuelleBerechnungsvorschrift.metadaten.einheit;
             document.getElementById('edit-excel-identifikator').value = aktuelleBerechnungsvorschrift.excel_identifikator || '';
+            document.getElementById('edit-wichtig').checked = aktuelleBerechnungsvorschrift.wichtig || false;
             
             // Modal anzeigen
             const modal = new bootstrap.Modal(document.getElementById('bearbeiten-modal'));
@@ -411,6 +428,7 @@
             if (!aktuelleBerechnungsvorschrift) return;
             
             const excelIdVal = document.getElementById('edit-excel-identifikator').value.trim();
+            const wichtigChecked = document.getElementById('edit-wichtig').checked;
             const aktualisierteBv = {
                 ...aktuelleBerechnungsvorschrift,
                 name: document.getElementById('edit-name').value,
@@ -421,7 +439,8 @@
                     datentyp: document.getElementById('edit-datentyp').value,
                     einheit: document.getElementById('edit-einheit').value
                 },
-                excel_identifikator: excelIdVal || null
+                excel_identifikator: excelIdVal || null,
+                wichtig: wichtigChecked
             };
             
             try {

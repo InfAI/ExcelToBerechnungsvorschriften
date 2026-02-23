@@ -103,6 +103,7 @@ const api = {
         if (filter.symbol) params.append('symbol', filter.symbol);
         if (filter.datentyp) params.append('datentyp', filter.datentyp);
         if (filter.einheit) params.append('einheit', filter.einheit);
+        if (filter.wichtig === true) params.append('wichtig', 'true');
         
         return this.request(`/berechnungsvorschriften/suche?${params.toString()}`);
     },

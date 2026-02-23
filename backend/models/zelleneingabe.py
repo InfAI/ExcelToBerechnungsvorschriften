@@ -20,6 +20,12 @@ class Zelleneingabe(BaseModel):
         None,
         description="Excel-Identifikator der Zelle (optional, z.B. _1_Wert). Stammt aus Excel."
     )
+    # Wenn true, wird die erstellte Berechnungsvorschrift als wichtig gespeichert.
+    # Wird z.B. vom Excel-Import-Script aus der Config wichtige_zellen gesetzt.
+    wichtig: Optional[bool] = Field(
+        None,
+        description="Wenn true, wird die erstellte BV als wichtig gespeichert (Speicherung + Anzeige)"
+    )
     
     class Config:
         json_schema_extra = {

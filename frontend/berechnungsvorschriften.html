@@ -63,6 +63,12 @@
                         <label for="suche-einheit" class="form-label">Einheit</label>
                         <input type="text" class="form-control" id="suche-einheit">
                     </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" id="suche-wichtig">
+                            <label class="form-check-label" for="suche-wichtig">Nur wichtige</label>
+                        </div>
+                    </div>
                     <div class="col-12">
                         <button type="submit" class="btn btn-primary">Suchen</button>
                         <button type="button" class="btn btn-secondary" onclick="resetSuche()">Zurücksetzen</button>
@@ -99,7 +105,8 @@
                 kategorie: document.getElementById('suche-kategorie').value || null,
                 symbol: document.getElementById('suche-symbol').value || null,
                 datentyp: document.getElementById('suche-datentyp').value || null,
-                einheit: document.getElementById('suche-einheit').value || null
+                einheit: document.getElementById('suche-einheit').value || null,
+                wichtig: document.getElementById('suche-wichtig').checked || null
             };
             
             const container = document.getElementById('berechnungsvorschriften-container');

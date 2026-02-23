@@ -6,6 +6,10 @@ Ein Python-Web-Projekt zur automatischen Generierung von menschenlesbaren Berech
 
 - **LLM-basierte Generierung**: Excel-Formeln werden automatisch in menschenlesbaren Pseudocode umgewandelt
 - **Programmatische Verlinkung**: Variablen werden automatisch mit bestehenden Berechnungsvorschriften verlinkt
+- **Cross-Sheet-Referenzen**: Zellen aus anderen Tabellenblättern werden via `tabellenblatt_referenz` korrekt verlinkt
+- **Excel-Identifikator**: Optionales Feld für präzises Zellen-Matching und Verlinkung
+- **Originalformel**: `formel_original` speichert die ursprüngliche Excel-Formel lesbar
+- **Zellen-Übersicht**: Gruppierung nach Tabelle/Blatt, Sortierung nach Excel-Spalte/Zeile (Pause/Fortsetzen beim Übertragen)
 - **Metadaten-basierte Suche**: Berechnungsvorschriften sind über alle Metadaten-Felder auffindbar
 - **Abhängigkeitsvisualisierung**: Für jede Berechnungsvorschrift werden Abhängigkeiten angezeigt
 - **Anklickbare Navigation**: Variablen im Pseudocode sind anklickbar und führen zu referenzierten Berechnungsvorschriften
@@ -41,9 +45,13 @@ Ein Python-Web-Projekt zur automatischen Generierung von menschenlesbaren Berech
 
 3. **Berechnungsvorschriften verwalten**:
    - Alle Berechnungsvorschriften anzeigen: http://localhost/berechnungsvorschriften.html
+   - **Zellen-Übersicht** (nach Tabelle/Blatt gruppiert): http://localhost/zellen-uebersicht.html
    - Details anzeigen: Klick auf eine Berechnungsvorschrift
    - Bearbeiten: "Bearbeiten"-Button in der Detailansicht
    - Suchen: Metadaten-Filter in der Übersicht
+
+4. **Excel-Dateien halb-automatisiert importieren**:
+   - Siehe [EXCEL_IMPORT_PLAN.md](EXCEL_IMPORT_PLAN.md) für Vorgehen, Konfiguration und Nutzung des Import-Scripts.
 
 ## API-Dokumentation
 
@@ -60,13 +68,16 @@ Die API-Dokumentation ist verfügbar unter:
 ├── fuseki-config.ttl          # Fuseki Konfiguration
 ├── backend/                    # FastAPI Backend
 │   ├── main.py                # FastAPI App
+│   ├── config/                # YAML-Konfiguration (z.B. Excel-Import)
 │   ├── models/                # Pydantic Models
 │   ├── services/              # Business Logic
 │   ├── api/routes/            # API Endpunkte
+│   ├── scripts/               # Excel-Import, Migrationen (z.B. set_formel_original)
 │   └── prompts/               # LLM Prompts und Beispiele
 └── frontend/                   # HTML/JS Frontend
     ├── index.html             # Eingabeformular
     ├── berechnungsvorschriften.html  # Übersicht
+    ├── zellen-uebersicht.html # Zellen gruppiert nach Tabelle/Blatt
     └── berechnungsvorschrift.html   # Detailansicht
 ```
 
@@ -100,3 +111,4 @@ Die Services sind verfügbar unter:
 - Die OpenAI API Key muss in der `.env` Datei gesetzt werden
 - Bei ersten Start kann Fuseki etwas Zeit zum Initialisieren benötigen
 - GPT-5-nano wird verwendet (falls nicht verfügbar, wird auf gpt-4o-mini zurückgegriffen)
+- **Logging**: INFO für API-Aufrufe und Verlinkung, DEBUG für Details (LLM-Request, SPARQL, Matcher) – Standard ist INFO

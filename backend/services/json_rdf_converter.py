@@ -71,6 +71,10 @@ class JSONRDFConverter:
         if getattr(bv, "excel_identifikator", None) and bv.excel_identifikator:
             graph.add((bv_uri, property_uri("hatExcelIdentifikator"), Literal(bv.excel_identifikator)))
         
+        # Wichtig-Flag (optional) – Markierung für wichtige Berechnungsvorschriften (Speicherung + Anzeige)
+        if getattr(bv, "wichtig", None) is True:
+            graph.add((bv_uri, property_uri("hatWichtig"), Literal(True, datatype=XSD.boolean)))
+        
         # Metadaten
         graph.add((bv_uri, property_uri("hatKategorie"), Literal(bv.metadaten.kategorie)))
         graph.add((bv_uri, property_uri("hatSymbol"), Literal(bv.metadaten.symbol)))
@@ -167,6 +171,10 @@ class JSONRDFConverter:
         excel_identifikator_val = graph.value(bv_uri, property_uri("hatExcelIdentifikator"))
         excel_identifikator = str(excel_identifikator_val).strip() if excel_identifikator_val else None
         
+        # Wichtig-Flag (optional) – Markierung für wichtige Berechnungsvorschriften
+        wichtig_val = graph.value(bv_uri, property_uri("hatWichtig"))
+        wichtig = str(wichtig_val).lower() == "true" if wichtig_val else False
+        
         # Metadaten extrahieren
         kategorie_val = graph.value(bv_uri, property_uri("hatKategorie"))
         symbol_val = graph.value(bv_uri, property_uri("hatSymbol"))
@@ -262,7 +270,8 @@ class JSONRDFConverter:
             erstellt_am=erstellt_am,
             geaendert_am=geaendert_am,
             operation=operation,
-            excel_identifikator=excel_identifikator
+            excel_identifikator=excel_identifikator,
+            wichtig=wichtig
         )
         logger.info(f"RDF-zu-JSON abgeschlossen: {bv.id} ({bv.name}, {len(bv.variablen)} Variablen)")
         return bv

@@ -95,6 +95,12 @@ class Berechnungsvorschrift(BaseModel):
         description="Excel-Identifikator der Ausgabezelle (z.B. _1_Wert). Stammt aus Excel, nicht aus der Datenbank. "
                     "Wird für Matching genutzt, wenn Formeln auf diesen Identifikator verweisen."
     )
+    # Markierung für wichtige Berechnungsvorschriften – aus Excel-Import-Config oder manuell gesetzt.
+    # Wird für Speicherung (RDF) und Anzeige (Frontend) genutzt.
+    wichtig: Optional[bool] = Field(
+        False,
+        description="Markierung: wichtige Berechnungsvorschrift (z.B. aus wichtigen Zellen pro Tabellenblatt)"
+    )
     
     class Config:
         json_schema_extra = {

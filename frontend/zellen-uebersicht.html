@@ -169,9 +169,13 @@
                                         const excelIdBadge = bv.excel_identifikator
                                             ? `<span class="badge bg-success ms-1" title="Excel-Identifikator">${bv.excel_identifikator}</span>`
                                             : '';
+                                        // Wichtig-Badge für hervorgehobene BVs
+                                        const wichtigBadge = bv.wichtig
+                                            ? '<span class="badge bg-warning text-dark ms-1" title="Wichtige Berechnungsvorschrift">Wichtig</span>'
+                                            : '';
                                         return trenner + `
                                             <li class="list-group-item zellen-eintrag">
-                                                <span class="zellen-badge">${zelle}</span>${excelIdBadge}
+                                                <span class="zellen-badge">${zelle}</span>${excelIdBadge}${wichtigBadge}
                                                 <span class="zellen-beschreibung">
                                                     <a href="berechnungsvorschrift.html?id=${bv.id}">${zusammenfassung}</a>
                                                     ${beschreibung ? `<small class="text-muted">${beschreibung}</small>` : ''}

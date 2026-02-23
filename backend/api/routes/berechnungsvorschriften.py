@@ -43,6 +43,10 @@ async def erstelle_berechnungsvorschrift(request: BerechnungsvorschriftErstellen
         # LLM generiert Berechnungsvorschrift
         berechnungsvorschrift = llm_service.generiere_berechnungsvorschrift(ze)
         
+        # Wichtig-Flag aus Zelleneingabe übernehmen (z.B. aus Excel-Import Config wichtige_zellen)
+        if getattr(ze, "wichtig", None) is True:
+            berechnungsvorschrift.wichtig = True
+        
         # ID generieren
         berechnungsvorschrift.id = str(uuid.uuid4())
         logger.debug(f"Variablen verlinken für {berechnungsvorschrift.id}")
@@ -302,19 +306,21 @@ async def suche_berechnungsvorschriften(
     kategorie: Optional[str] = Query(None, description="Nach Kategorie suchen"),
     symbol: Optional[str] = Query(None, description="Nach Symbol suchen"),
     datentyp: Optional[str] = Query(None, description="Nach Datentyp suchen"),
-    einheit: Optional[str] = Query(None, description="Nach Einheit suchen")
+    einheit: Optional[str] = Query(None, description="Nach Einheit suchen"),
+    wichtig: Optional[bool] = Query(None, description="Nur wichtige BVs (true = Filter aktiv)")
 ) -> List[Berechnungsvorschrift]:
     """
     Sucht Berechnungsvorschriften über Metadaten
     """
-    logger.info(f"Suche: name={name}, kategorie={kategorie}, symbol={symbol}")
+    logger.info(f"Suche: name={name}, kategorie={kategorie}, symbol={symbol}, wichtig={wichtig}")
     try:
         return rdf_service.suche_nach_metadaten(
             name=name,
             kategorie=kategorie,
             symbol=symbol,
             datentyp=datentyp,
-            einheit=einheit
+            einheit=einheit,
+            wichtig=wichtig
         )
     except Exception as e:
         logger.error(f"Fehler bei Suche: {type(e).__name__}: {e}", exc_info=True)

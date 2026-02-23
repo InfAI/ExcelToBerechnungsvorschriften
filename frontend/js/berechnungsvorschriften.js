@@ -37,7 +37,7 @@ function erstelleBerechnungsvorschriftCard(bv) {
     return `
         <div class="card mb-3" data-bv-id="${bv.id}">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">${bv.name}</h5>
+                <h5 class="mb-0">${bv.name} ${bv.wichtig ? '<span class="badge bg-warning text-dark ms-2">Wichtig</span>' : ''}</h5>
                 <span class="badge bg-info">Version ${bv.version}</span>
                 ${bv.operation === 'index_lookup' ? '<span class="badge bg-secondary ms-1">Tabellenlookup</span>' : ''}
             </div>

@@ -230,7 +230,8 @@ class RDFService:
         kategorie: Optional[str] = None,
         symbol: Optional[str] = None,
         datentyp: Optional[str] = None,
-        einheit: Optional[str] = None
+        einheit: Optional[str] = None,
+        wichtig: Optional[bool] = None
     ) -> List[Berechnungsvorschrift]:
         """
         Sucht Berechnungsvorschriften nach Metadaten
@@ -241,6 +242,7 @@ class RDFService:
             symbol: Symbol (optional)
             datentyp: Datentyp (optional)
             einheit: Einheit (optional)
+            wichtig: Filter „nur wichtige BVs“ (optional; True = nur wichtige)
             
         Returns:
             Liste der gefundenen Berechnungsvorschriften
@@ -261,6 +263,9 @@ class RDFService:
             conditions.append(f'?bv bv:hatDatentyp "{escape_sparql_string(datentyp)}"')
         if einheit:
             conditions.append(f'?bv bv:hatEinheit "{escape_sparql_string(einheit)}"')
+        # Filter für wichtige Berechnungsvorschriften (hatWichtig = true)
+        if wichtig is True:
+            conditions.append('?bv bv:hatWichtig "true"^^xsd:boolean')
         
         if not conditions:
             return self.lade_alle_berechnungsvorschriften()
