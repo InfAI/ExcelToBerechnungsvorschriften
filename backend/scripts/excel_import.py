@@ -52,6 +52,57 @@ def zelle_zu_ref(row: int, col: int) -> str:
     return f"{get_column_letter(col)}{row}"
 
 
+def zellenwert_mit_merge(ws, row: int, col: int):
+    """
+    Liest den Zellwert. Bei zusammengeführten Zellen (Merge) liefert nur die
+    obere linke Zelle den Wert; MergedCell-Platzhalter sind leer. Diese Funktion
+    ermittelt bei leerem Wert, ob die Zelle in einem Merge-Bereich liegt, und
+    gibt in dem Fall den Wert der oberen linken Zelle zurück.
+    """
+    cell = ws.cell(row=row, column=col)
+    val = cell.value
+    if val is not None and str(val).strip():
+        return val
+    # Prüfen, ob Zelle Teil eines Merge-Bereichs ist – dann Wert der Top-Left
+    for merged_range in ws.merged_cells.ranges:
+        if cell.coordinate in merged_range:
+            top_left = ws.cell(row=merged_range.min_row, column=merged_range.min_col)
+            return top_left.value
+    return val
+
+
+def ist_beschreibungszelle(
+    row: int, col: int, min_row: int, min_col: int, tabelle_config: dict
+) -> bool:
+    """
+    Prüft, ob die Zelle (row, col) zu den als Beschreibung konfigurierten
+    Spalten/Zeilen gehört. Solche Zellen werden nicht als Berechnungsvorschrift
+    importiert (Überschriften, Spalten-/Zeilenbeschriftungen).
+
+    Nur relevant bei beschreibung_quelle "zellen" mit beschreibung_aus_zellen:
+    - erste_spalte_gleiche_zeile: erste Spalte = Beschriftung der Zeile
+    - gleiche_spalte_erste_n_zeilen: erste n Zeilen = Beschriftung der Spalte
+    """
+    quelle = tabelle_config.get("beschreibung_quelle")
+    if quelle != "zellen":
+        return False
+
+    aus_zellen = tabelle_config.get("beschreibung_aus_zellen", {})
+    if not aus_zellen:
+        return False
+
+    # erste_spalte: Zellen in der ersten Spalte sind Zeilenbeschriftung
+    if aus_zellen.get("erste_spalte_gleiche_zeile") and col == min_col:
+        return True
+
+    # erste n Zeilen: Zellen in den ersten n Zeilen sind Spaltenbeschriftung
+    n_zeilen = aus_zellen.get("gleiche_spalte_erste_n_zeilen", 0)
+    if n_zeilen and n_zeilen > 0 and row < min_row + n_zeilen:
+        return True
+
+    return False
+
+
 def beschreibung_aus_zellen_ermitteln(
     ws,
     formel_row: int,
@@ -71,15 +122,13 @@ def beschreibung_aus_zellen_ermitteln(
     n_zeilen = config.get("gleiche_spalte_erste_n_zeilen", 0)
     if n_zeilen and n_zeilen > 0:
         for r in range(min_row, min(min_row + n_zeilen, formel_row)):
-            cell = ws.cell(row=r, column=formel_col)
-            val = cell.value
+            val = zellenwert_mit_merge(ws, r, formel_col)
             if val is not None and str(val).strip():
                 teile.append(str(val).strip())
 
-    # erste_spalte_gleiche_zeile: Wert aus erster Spalte, gleiche Zeile
+    # erste_spalte_gleiche_zeile: Wert aus erster Spalte, gleiche Zeile (Merge berücksichtigt)
     if config.get("erste_spalte_gleiche_zeile") and formel_col > min_col:
-        cell = ws.cell(row=formel_row, column=min_col)
-        val = cell.value
+        val = zellenwert_mit_merge(ws, formel_row, min_col)
         if val is not None and str(val).strip():
             teile.append(str(val).strip())
 
@@ -104,14 +153,14 @@ def beschreibung_ermitteln(
             return (cell.comment.text or "").strip().replace("\n", " ")
 
     if quelle == "links" and formel_col > 1:
-        left_cell = ws.cell(row=formel_row, column=formel_col - 1)
-        if left_cell.value is not None:
-            return str(left_cell.value).strip()
+        val = zellenwert_mit_merge(ws, formel_row, formel_col - 1)
+        if val is not None:
+            return str(val).strip()
 
     if quelle == "oben" and formel_row > 1:
-        top_cell = ws.cell(row=formel_row - 1, column=formel_col)
-        if top_cell.value is not None:
-            return str(top_cell.value).strip()
+        val = zellenwert_mit_merge(ws, formel_row - 1, formel_col)
+        if val is not None:
+            return str(val).strip()
 
     # Fallback: formel oder leere Beschreibung (formel als Hinweis)
     if quelle == "formel":
@@ -119,6 +168,20 @@ def beschreibung_ermitteln(
         return str(formel).strip()[:200]  # Begrenzen für Lesbarkeit
 
     return ""
+
+
+def formel_ersetzung_anwenden(beschreibung: str, formel_ersetzung: dict | None) -> str:
+    """
+    Ersetzt in der Beschreibung vorkommende Formeln durch die konfigurierten Texte.
+    formel_ersetzung: Mapping Formel -> Ersatztext (z.B. "=$'INTERN BEZÜGE'.$D$3" -> "Vollzeit festangestellt").
+    Längere Formeln werden zuerst ersetzt, um Überlappungen zu vermeiden.
+    """
+    if not beschreibung or not formel_ersetzung:
+        return beschreibung
+    # Nach Länge absteigend sortieren, damit längere Formeln vor kürzeren ersetzt werden
+    for formel in sorted(formel_ersetzung.keys(), key=len, reverse=True):
+        beschreibung = beschreibung.replace(formel, formel_ersetzung[formel])
+    return beschreibung
 
 
 def zelleneingaben_aus_excel(config_path: str, excel_path: str) -> list:
@@ -136,6 +199,8 @@ def zelleneingaben_aus_excel(config_path: str, excel_path: str) -> list:
 
     wb = load_workbook(pfad, read_only=False, data_only=False)
     zelleneingaben = []
+    # Optional: Formeln in Beschreibungen durch lesbare Texte ersetzen
+    formel_ersetzung = config.get("formel_ersetzung") or {}
 
     for blatt in config.get("tabellenblaetter", []):
         blatt_name = blatt.get("name")
@@ -165,6 +230,9 @@ def zelleneingaben_aus_excel(config_path: str, excel_path: str) -> list:
 
             for row in range(min_row, max_row + 1):
                 for col in range(min_col, max_col + 1):
+                    # Beschreibungszellen (Überschriften, Zeilen-/Spaltenbeschriftung) überspringen
+                    if ist_beschreibungszelle(row, col, min_row, min_col, tabelle):
+                        continue
                     cell = ws.cell(row=row, column=col)
                     val = cell.value
                     if not val or not str(val).strip().startswith("="):
@@ -174,6 +242,7 @@ def zelleneingaben_aus_excel(config_path: str, excel_path: str) -> list:
                     beschreibung = beschreibung_ermitteln(
                         ws, cell, row, col, min_row, min_col, tabelle
                     )
+                    beschreibung = formel_ersetzung_anwenden(beschreibung, formel_ersetzung)
                     wichtig = zellen_ref in wichtige_zellen
 
                     ze = {

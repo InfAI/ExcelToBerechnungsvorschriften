@@ -1,6 +1,8 @@
 # Beispiel-Konfiguration für den halb-automatisierten Excel-Import
 # Anpassen: excel_datei, Tabellenblätter, Tabellen und Bereiche an Ihre Excel-Datei.
 #
+# formel_ersetzung (optional): Formeln, die in Beschreibungen vorkommen, werden durch Texte ersetzt
+#
 # Pro Tabelle:
 # - id: wird zu tabellenidentifikator
 # - bereich: Zellbereich (z.B. A5:F16)
@@ -8,30 +10,28 @@
 # - beschreibung_aus_zellen: nur bei beschreibung_quelle "zellen"
 # - wichtige_zellen: Liste von Zellenidentifikatoren für "wichtige" BVs (optional)
 
-excel_datei: "Pfad/zur/datei.xlsx"
+excel_datei: "/home/kurtjunghanns/Documents/2023 - RegioNachhaltigkeit/Daten_Massnahmenkatalog/BERECHNUNGEN_Soziales_V3_2025_09_30.xlsx"
+
+# Formeln in Zellbeschreibungen durch lesbare Texte ersetzen (z.B. wenn Referenzzellen Formeln enthalten)
+formel_ersetzung:
+  # Excel/openpyxl nutzt ! zwischen Blatt und Zelle: 'Blatt'!$D$3
+  "='INTERN BEZÜGE'!$D$3": "Vollzeit festangestellt"
 
 tabellenblaetter:
-  - name: "1. Lohn AW"
+
+  # 2. Arbeitszeit AW – 8 Tabellen (Bereiche an Excel anpassen!)
+  - name: "2. Arbeitszeit AW"
     tabellen:
-      - id: "Tabelle1"
-        bereich: "A5:F16"
+      - id: "Vollzeit"
+        bereich: "A5:H18"
         beschreibung_quelle: "zellen"
         beschreibung_aus_zellen:
           erste_spalte_gleiche_zeile: true
           gleiche_spalte_erste_n_zeilen: 2
           trennzeichen: " – "
-        wichtige_zellen: ["D7", "E8", "F10"]
-      - id: "Tabelle7"
-        bereich: "J25:K29"
-        beschreibung_quelle: "kommentar"
-        wichtige_zellen: ["J26", "K27"]
-
-  - name: "2. Gehalt"
-    tabellen:
-      - id: "Tabelle1"
-        bereich: "B3:E15"
+      - id: "Auswertung"
+        bereich: "A21:G22"
         beschreibung_quelle: "zellen"
         beschreibung_aus_zellen:
           erste_spalte_gleiche_zeile: true
-          gleiche_spalte_erste_n_zeilen: 1
           trennzeichen: " – "

@@ -72,6 +72,7 @@ tabellenblaetter:
 **Felder:**
 
 - `excel_datei`: Pfad zur Excel-Datei
+- `formel_ersetzung` (optional): Mapping Formel → Text. Wenn eine Beschreibung eine Formel enthält (z.B. weil Referenzzellen Formeln haben), wird sie durch den Text ersetzt. Beispiel: `"=$'INTERN BEZÜGE'.$D$3": "Vollzeit festangestellt"`
 - `tabellenblaetter`: Liste der zu ladenden Blätter mit Namen
 - Pro Blatt: `tabellen[]` mit:
   - `id` (wird zu `tabellenidentifikator`)
@@ -92,6 +93,10 @@ tabellenblaetter:
 | **oben**      | Wert aus Zelle darüber (z.B. Zeilenüberschrift)                                                |
 | **formel**    | Fallback: nur Formel, LLM kann aus Kontext ableiten                                            |
 | **manuell**   | Beschreibungen in separater CSV/Excel hinterlegen                                               |
+
+### Zusammengeführte Zellen (Merge)
+
+Bei zusammengeführten Zellen speichert Excel den Wert nur in der oberen linken Zelle. Die übrigen Zellen sind leer. Das Import-Script nutzt `zellenwert_mit_merge`: Beim Lesen von Beschreibungen wird bei MergedCells der Wert der Top-Left-Zelle verwendet (z.B. A7:A18 → Wert aus A7 für alle Zeilen 7–18).
 
 ### Option `zellen` – Zeilen und Spalten konfigurieren (pro Tabelle)
 
