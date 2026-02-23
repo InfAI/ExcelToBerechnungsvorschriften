@@ -299,14 +299,17 @@ def dry_run(zelleneingaben: list, output_json: bool = True) -> None:
 
 
 def importiere_per_api(zelleneingaben: list, api_url: str) -> None:
-    """Sendet jede Zelleneingabe per POST an die API."""
+    """
+    Sendet jede Zelleneingabe per POST an die API.
+    Fehlgeschlagene Zelleneingaben werden gesammelt und am Ende als JSON ausgegeben.
+    """
     import urllib.request
     import urllib.error
 
     base = api_url.rstrip("/")
     endpoint = f"{base}/api/berechnungsvorschriften"
     erstellt = 0
-    fehler = 0
+    fehlgeschlagen = []  # Liste: [ {"zelleneingabe": {...}, "fehler": "..."}, ... ]
 
     for i, ze in enumerate(zelleneingaben):
         payload = json.dumps({"zelleneingabe": ze}).encode("utf-8")
@@ -322,17 +325,25 @@ def importiere_per_api(zelleneingaben: list, api_url: str) -> None:
                     erstellt += 1
                     logger.info(f"({i + 1}/{len(zelleneingaben)}) Erstellt: {ze['zellenidentifikator']} ({ze['tabellenblatt']})")
                 else:
-                    fehler += 1
-                    logger.warning(f"({i + 1}/{len(zelleneingaben)}) HTTP {resp.getcode()}: {ze['zellenidentifikator']}")
+                    fehlermeldung = f"HTTP {resp.getcode()}"
+                    fehlgeschlagen.append({"zelleneingabe": ze, "fehler": fehlermeldung})
+                    logger.warning(f"({i + 1}/{len(zelleneingaben)}) {fehlermeldung}: {ze['zellenidentifikator']}")
         except urllib.error.HTTPError as e:
-            fehler += 1
             body = e.read().decode("utf-8", errors="replace") if e.fp else ""
+            fehlermeldung = f"HTTP {e.code}: {body[:300]}"
+            fehlgeschlagen.append({"zelleneingabe": ze, "fehler": fehlermeldung})
             logger.error(f"({i + 1}/{len(zelleneingaben)}) Fehler {ze['zellenidentifikator']}: {e.code} {body[:200]}")
         except Exception as e:
-            fehler += 1
+            fehlermeldung = str(e)
+            fehlgeschlagen.append({"zelleneingabe": ze, "fehler": fehlermeldung})
             logger.error(f"({i + 1}/{len(zelleneingaben)}) Fehler {ze['zellenidentifikator']}: {e}")
 
-    logger.info(f"Import abgeschlossen: {erstellt} erstellt, {fehler} Fehler")
+    logger.info(f"Import abgeschlossen: {erstellt} erstellt, {len(fehlgeschlagen)} Fehler")
+
+    # Fehlgeschlagene Zelleneingaben am Ende ausgeben (für Nachbearbeitung oder erneuten Import)
+    if fehlgeschlagen:
+        print("\n--- Fehlgeschlagene Zelleneingaben ---", file=sys.stderr)
+        print(json.dumps(fehlgeschlagen, indent=2, ensure_ascii=False), file=sys.stderr)
 
 
 def main():
