@@ -143,13 +143,24 @@
                         ? ['Ohne Quellzuordnung', '']
                         : key.split(' | ');
 
+                    // Nur für Gruppen mit Tabellenidentifikator UND Tabellenblatt den Löschen-Button anzeigen
+                    const hasBlattKey = key !== '__OHNE_QUELLZUORDNUNG__' && tabId && blattId 
+                        && tabId !== '(kein)' && blattId !== '(kein)';
+                    const loeschenBtn = hasBlattKey ? `
+                                <button type="button" class="btn btn-outline-danger btn-sm ms-2" 
+                                    data-tab-id="${tabId}" data-tab-blatt="${blattId}" 
+                                    title="Alle ${items.length} Berechnungsvorschriften dieses Blatts löschen">
+                                    Alle löschen
+                                </button>` : '';
+
                     html += `
-                        <div class="card mb-4">
-                            <div class="card-header d-flex justify-content-between align-items-center">
+                        <div class="card mb-4" data-group-key="${key}">
+                            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                                 <h5 class="mb-0">
                                     <span class="badge bg-secondary me-2">${items.length} Zelle(n)</span>
                                     ${tabId}${blattId ? ' → ' + blattId : ''}
                                 </h5>
+                                <div>${loeschenBtn}</div>
                             </div>
                             <div class="card-body p-0">
                                 <ul class="list-group list-group-flush">
@@ -191,6 +202,34 @@
                 }
 
                 container.innerHTML = html;
+
+                // Event-Delegation: Löschen-Button für Tabellenblatt
+                container.addEventListener('click', async (e) => {
+                    const btn = e.target.closest('button[data-tab-id][data-tab-blatt]');
+                    if (!btn) return;
+                    const tabId = btn.dataset.tabId;
+                    const blattId = btn.dataset.tabBlatt;
+                    if (!tabId || !blattId) return;
+                    if (!confirm(`Alle Berechnungsvorschriften des Blatts "${tabId} → ${blattId}" löschen? Dies kann nicht rückgängig gemacht werden.`)) {
+                        return;
+                    }
+                    btn.disabled = true;
+                    btn.textContent = 'Löschen...';
+                    try {
+                        const result = await api.loescheBerechnungsvorschriftenNachBlatt(tabId, blattId);
+                        let msg = result.meldung || `${result.geloescht} gelöscht.`;
+                        if (result.nicht_loeschbar && result.nicht_loeschbar.length > 0) {
+                            msg += ` ${result.nicht_loeschbar.length} konnten nicht gelöscht werden (werden von anderen Blättern referenziert).`;
+                        }
+                        alert(msg);
+                        // Seite neu laden, um aktualisierte Liste anzuzeigen
+                        location.reload();
+                    } catch (err) {
+                        alert('Fehler beim Löschen: ' + (err.message || err));
+                        btn.disabled = false;
+                        btn.textContent = 'Alle löschen';
+                    }
+                });
 
             } catch (error) {
                 container.innerHTML = `<div class="alert alert-danger">Fehler beim Laden: ${error.message}</div>`;

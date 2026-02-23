@@ -31,8 +31,10 @@ versionierung = VersionierungService(rdf_service)
 @router.post("", response_model=BerechnungsvorschriftCreateResponse, status_code=201)
 async def erstelle_berechnungsvorschrift(request: BerechnungsvorschriftErstellen) -> BerechnungsvorschriftCreateResponse:
     """
-    Erstellt eine neue Berechnungsvorschrift aus Zelleneingabe-Daten
-    
+    Erstellt eine neue Berechnungsvorschrift aus Zelleneingabe-Daten.
+    Wenn bereits eine BV mit gleicher Kombination (Tabellenidentifikator, Tabellenblatt,
+    Zellenidentifikator) existiert, wird diese aktualisiert statt neu erstellt.
+
     - Generiert Berechnungsvorschrift mit LLM
     - Verlinkt Variablen zu bestehenden Berechnungsvorschriften
     - Speichert in Fuseki
@@ -40,20 +42,35 @@ async def erstelle_berechnungsvorschrift(request: BerechnungsvorschriftErstellen
     ze = request.zelleneingabe
     logger.info(f"Erstelle Berechnungsvorschrift: {ze.zellenidentifikator} ({ze.tabellenblatt})")
     try:
+        # Prüfen, ob bereits eine BV mit gleicher Quelle existiert (Tabellen-ID + Blatt + Zelle)
+        vorhandene = rdf_service.suche_nach_quelle(
+            tabellenidentifikator=ze.tabellenidentifikator,
+            tabellenblatt=ze.tabellenblatt,
+            zellenidentifikator=ze.zellenidentifikator
+        )
+        ist_update = bool(vorhandene)
+
         # LLM generiert Berechnungsvorschrift
         berechnungsvorschrift = llm_service.generiere_berechnungsvorschrift(ze)
-        
+
         # Wichtig-Flag aus Zelleneingabe übernehmen (z.B. aus Excel-Import Config wichtige_zellen)
         if getattr(ze, "wichtig", None) is True:
             berechnungsvorschrift.wichtig = True
-        
-        # ID generieren
-        berechnungsvorschrift.id = str(uuid.uuid4())
+
+        if ist_update:
+            # Bestehende BV aktualisieren: ID übernehmen, Version erhöhen
+            alte_bv = vorhandene[0]
+            berechnungsvorschrift.id = alte_bv.id
+            logger.info(f"Aktualisiere vorhandene Berechnungsvorschrift {alte_bv.id} (statt neu erstellen)")
+        else:
+            # Neue BV: ID generieren
+            berechnungsvorschrift.id = str(uuid.uuid4())
+
         logger.debug(f"Variablen verlinken für {berechnungsvorschrift.id}")
         berechnungsvorschrift, mehrere_treffer = matcher.verlinke_variablen(berechnungsvorschrift)
         if mehrere_treffer:
             logger.info(f"Mehrere Treffer gefunden für {len(mehrere_treffer)} Variablen")
-        
+
         # Prüfe auf zirkuläre Abhängigkeiten
         for var in berechnungsvorschrift.variablen:
             if var.referenz_berechnungsvorschrift_id and not var.ist_primitive:
@@ -65,10 +82,14 @@ async def erstelle_berechnungsvorschrift(request: BerechnungsvorschriftErstellen
                         status_code=400,
                         detail=f"Zirkuläre Abhängigkeit erkannt: Variable '{var.name}' würde eine zirkuläre Referenz erzeugen"
                     )
-        
+
+        # Bei Update: Versionierung (neue Version mit geaendert_am, version++)
+        if ist_update:
+            berechnungsvorschrift = versionierung.erstelle_neue_version(vorhandene[0], berechnungsvorschrift)
+
         # Speichern
         rdf_service.speichere_berechnungsvorschrift(berechnungsvorschrift)
-        logger.info(f"Berechnungsvorschrift {berechnungsvorschrift.id} erstellt")
+        logger.info(f"Berechnungsvorschrift {berechnungsvorschrift.id} {'aktualisiert' if ist_update else 'erstellt'}")
         
         # Rückwärts-Verlinkung: Andere BVs, die eine Variable haben, die jetzt auf diese BV verlinkt werden kann
         aktualisierte_verlinkungen = []
@@ -187,6 +208,67 @@ async def aktualisiere_berechnungsvorschrift(
     logger.info(f"Berechnungsvorschrift {bv_id} aktualisiert (Version {neue_version.version})")
     
     return neue_version
+
+
+@router.delete("/blatt", status_code=200)
+async def loesche_berechnungsvorschriften_nach_blatt(
+    tabellenidentifikator: str = Query(..., description="Tabellenidentifikator des Blatts"),
+    tabellenblatt: str = Query(..., description="Name des Tabellenblatts")
+):
+    """
+    Löscht alle Berechnungsvorschriften für ein Tabellenblatt (Tabellenidentifikator + Tabellenblatt).
+    BVs werden in abhängigkeitsrelevanter Reihenfolge gelöscht (zuerst solche ohne Referenzen).
+    BVs, die von anderen Blättern referenziert werden, können nicht gelöscht werden.
+    """
+    logger.info(f"Lösche alle BVs für Blatt: {tabellenidentifikator} / {tabellenblatt}")
+    bvs = rdf_service.suche_nach_tabellenblatt(tabellenidentifikator, tabellenblatt)
+    if not bvs:
+        return {"geloescht": 0, "nicht_loeschbar": [], "meldung": "Keine Berechnungsvorschriften für dieses Blatt gefunden."}
+
+    ids_im_blatt = {bv.id for bv in bvs}
+    geloescht = 0
+    nicht_loeschbar = []
+
+    while bvs:
+        # Finde eine BV, die von niemandem (mehr) referenziert wird – Referencer zuerst löschen
+        ids_noch_drin = {b.id for b in bvs}
+        gefunden = None
+        for bv in bvs:
+            referenzen = rdf_service.finde_verwendet_in(bv.id)
+            # Löschbar nur wenn keine andere noch zu löschende BV diese referenziert
+            ref_noch_drin = [r for r in referenzen if r.id in ids_noch_drin]
+            if not ref_noch_drin:
+                gefunden = bv
+                break
+
+        if not gefunden:
+            # Keine weitere BV kann gelöscht werden – Rest hat Referenzen von außerhalb des Blatts
+            for bv in bvs:
+                nicht_loeschbar.append({"id": bv.id, "name": bv.name})
+            break
+
+        # Sicherheitsprüfung: Keine Referenzen von außerhalb des Blatts
+        if rdf_service.hat_referenzen(gefunden.id):
+            nicht_loeschbar.append({"id": gefunden.id, "name": gefunden.name})
+            bvs = [b for b in bvs if b.id != gefunden.id]
+            continue
+
+        try:
+            rdf_service.loesche_berechnungsvorschrift(gefunden.id)
+            geloescht += 1
+            ids_im_blatt.discard(gefunden.id)
+            bvs = [b for b in bvs if b.id != gefunden.id]
+        except Exception as e:
+            logger.warning(f"Löschen von {gefunden.id} fehlgeschlagen: {e}")
+            nicht_loeschbar.append({"id": gefunden.id, "name": gefunden.name})
+            bvs = [b for b in bvs if b.id != gefunden.id]
+
+    return {
+        "geloescht": geloescht,
+        "nicht_loeschbar": nicht_loeschbar,
+        "meldung": f"{geloescht} Berechnungsvorschrift(en) gelöscht."
+        + (f" {len(nicht_loeschbar)} konnten nicht gelöscht werden (externe Referenzen)." if nicht_loeschbar else "")
+    }
 
 
 @router.delete("/{bv_id}", status_code=204)

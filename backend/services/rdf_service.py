@@ -370,6 +370,59 @@ class RDFService:
         except Exception as e:
             logger.error(f"Fehler bei Suche nach Quelle: {type(e).__name__}: {e}", exc_info=True)
             return []
+
+    def suche_nach_tabellenblatt(
+        self,
+        tabellenidentifikator: str,
+        tabellenblatt: str
+    ) -> List[Berechnungsvorschrift]:
+        """
+        Sucht alle Berechnungsvorschriften für eine Kombination aus Tabellenidentifikator und Tabellenblatt.
+        Wird z.B. für das Löschen aller BVs eines Blatts genutzt.
+        """
+        if not tabellenidentifikator or not tabellenblatt:
+            return []
+
+        logger.info(f"Suche nach Tabellenblatt: {tabellenidentifikator} / {tabellenblatt}")
+        def escape_sparql_string(s):
+            return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+
+        conditions = [
+            f'?bv bv:hatQuelleTabellenidentifikator "{escape_sparql_string(tabellenidentifikator.strip())}"',
+            f'?bv bv:hatQuelleTabellenblatt "{escape_sparql_string(tabellenblatt.strip())}"'
+        ]
+        where_clause = " . ".join(conditions)
+        namespace_iri = get_namespace_iri()
+
+        query = f"""
+        PREFIX bv: <{namespace_iri}>
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+        SELECT DISTINCT ?bv_id
+        WHERE {{
+            ?bv rdf:type bv:Berechnungsvorschrift .
+            {where_clause} .
+            BIND(REPLACE(STR(?bv), ".*berechnungsvorschrift/", "") AS ?bv_id)
+        }}
+        """
+
+        client = self._get_sparql_client()
+        client.setQuery(query)
+
+        try:
+            results = client.queryAndConvert()
+            berechnungsvorschriften = []
+            if "results" in results and "bindings" in results["results"]:
+                for result in results["results"]["bindings"]:
+                    bv_id = result["bv_id"]["value"]
+                    bv = self.lade_berechnungsvorschrift(bv_id)
+                    if bv:
+                        berechnungsvorschriften.append(bv)
+            logger.debug(f"Suche nach Tabellenblatt: {len(berechnungsvorschriften)} Treffer")
+            return berechnungsvorschriften
+        except Exception as e:
+            logger.error(f"Fehler bei Suche nach Tabellenblatt: {type(e).__name__}: {e}", exc_info=True)
+            return []
     
     def suche_nach_excel_identifikator(self, excel_identifikator: str) -> List[Berechnungsvorschrift]:
         """

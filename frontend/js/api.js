@@ -78,6 +78,20 @@ const api = {
             method: 'DELETE',
         });
     },
+
+    /**
+     * Löscht alle Berechnungsvorschriften für ein Tabellenblatt
+     * (Kombination aus Tabellenidentifikator + Tabellenblatt)
+     */
+    async loescheBerechnungsvorschriftenNachBlatt(tabellenidentifikator, tabellenblatt) {
+        const params = new URLSearchParams({
+            tabellenidentifikator,
+            tabellenblatt,
+        });
+        return this.request(`/berechnungsvorschriften/blatt?${params.toString()}`, {
+            method: 'DELETE',
+        });
+    },
     
     /**
      * Lädt Berechnungsvorschriften, die diese referenzieren
