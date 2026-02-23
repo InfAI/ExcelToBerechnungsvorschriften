@@ -27,7 +27,7 @@ class LLMService:
             raise ValueError("OPENAI_API_KEY Umgebungsvariable nicht gesetzt")
         
         self.client = OpenAI(api_key=api_key)
-        self.model = "gpt-5-nano"
+        self.model = "gpt-4.1-nano"
         logger.info(f"LLMService initialisiert: {self.model}")
         
         # Prompt und Beispiel laden
