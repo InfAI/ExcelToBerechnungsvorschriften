@@ -15,6 +15,7 @@ Diese Dokumentation beschreibt **fachlich und konzeptionell**, wie Berechnungsvo
 | [03 Wartung](03_wartung.md) | Wartungsabläufe, Workflows, Pflege im Webbrowser |
 | [04 Formel-Wartbarkeit](04_formel_wartbarkeit.md) | Pseudocode-Regeln, Unterstützung für Nichtinformatiker |
 | [05 Zusammenführung](05_zusammenfuehrung.md) | Konzept zum Zusammenführen mehrerer BVs, potenzielle Probleme |
+| [06 Technische Handhabung](06_technische_handhabung.md) | Fallstricke, Besonderheiten, Matching-Prioritäten, Identifikatoren |
 
 ## Diagramme
 

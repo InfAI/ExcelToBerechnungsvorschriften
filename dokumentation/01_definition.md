@@ -38,6 +38,8 @@ Eine Variable verweist auf eine andere Berechnungsvorschrift über:
 
 Bei primitiven Variablen ist `referenz_berechnungsvorschrift_id` leer; der Wert kommt aus einer externen Quelle (z.B. Excel-Zelle).
 
+**Hinweis:** Es gibt zwei verschiedene Identifikatoren für Matching: `quelle.zellenidentifikator` (Excel-Zelle wie A1, D7) und `excel_identifikator` (Excel-Named-Range wie _1_Wert). Beide können für die Verlinkung relevant sein – je nachdem, ob die Formel auf eine Zelle oder eine Named Range verweist. Siehe [06 Technische Handhabung](06_technische_handhabung.md) für Details.
+
 ![Zwei-Ebenen-Modell: Formel-Syntax](diagramme/formel_syntax.png)
 
 ## Abhängigkeiten

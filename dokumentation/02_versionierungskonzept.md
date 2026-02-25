@@ -45,6 +45,10 @@ Damit ist jeder Versionsstand einer Person zuordenbar – für Audit, Nachverfol
 - **Nachteil:** Keine Versionierung pro Änderung, nur zu definierten Zeitpunkten.
 - **Einsatz:** Wenn Stichtags-Konsistenz erforderlich ist (z.B. Rechnungslegung).
 
+## Implementierungshinweis
+
+Die aktuelle Implementierung in ExcelToBerechnungsvorschriften unterstützt **nur Option A (Minimal)** – keine Version-Historie. Alte Versionen werden beim Speichern überschrieben und sind nicht abrufbar. Für Anwendungen wie IAK Farmaxis sollten die Optionen B–D bei der Implementierung berücksichtigt werden.
+
 ## Empfehlung
 
 **Empfohlen wird Option B: Vollständige Historie mit allen Versionen.**
