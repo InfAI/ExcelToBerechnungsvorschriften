@@ -1,4 +1,5 @@
-// Benutzeraktionen in IAK Farmaxis: Suche, Bearbeiten, Verlinkung, Historie
+// Benutzeraktionen in IAK Farmaxis (Daten aus ExcelToBerechnungsvorschriften)
+// Suche, Bearbeiten, Verlinkung, Historie
 // Wartbar, versionierbar - Graphviz DOT-Syntax
 digraph WartungWorkflow {
     rankdir=TB;
@@ -13,7 +14,7 @@ digraph WartungWorkflow {
         Anzeigen [label="Anzeigen\n(BV-Details, Abhaengigkeiten)"];
         Bearbeiten [label="Bearbeiten\n(Formel, Metadaten)"];
         Verlinkung [label="Verlinkung aendern\n(aufheben, manuell setzen)"];
-        Historie [label="Historie anzeigen\n(Versionsverlauf)"];
+        Historie [label="Historie anzeigen\n(Versionsverlauf + Account)"];
     }
 
     Suche -> Anzeigen;

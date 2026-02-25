@@ -1,4 +1,5 @@
 // Ablauf: Excel-Zellendaten -> Berechnungsvorschrift (konzeptionell)
+// Formel: menschen- und maschinenlesbar (Pseudocode)
 // Wartbar, versionierbar - Graphviz DOT-Syntax
 digraph ErzeugungAblauf {
     rankdir=TB;
@@ -14,8 +15,8 @@ digraph ErzeugungAblauf {
     subgraph cluster_verarbeitung {
         label="Verarbeitung";
         style=dashed;
-        Pseudocode [label="Pseudocode-Umwandlung\n(Excel-Syntax -> menschenlesbar)"];
-        Verlinkung [label="Variablen-Verlinkung\n(Matching mit bestehenden BVs)"];
+        Pseudocode [label="Pseudocode-Umwandlung\n(Excel -> menschenlesbar + maschinenlesbar)"];
+        Verlinkung [label="Variablen-Verlinkung\n(Matching: referenz_berechnungsvorschrift_id)"];
     }
 
     subgraph cluster_ausgabe {

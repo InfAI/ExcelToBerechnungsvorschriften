@@ -1,0 +1,31 @@
+// Zwei-Ebenen-Modell: Formel-String (menschenlesbar) vs. referenz_berechnungsvorschrift_id (maschinenlesbar)
+// Aus 01_definition.md - Variablen-Referenz
+// Wartbar, versionierbar - Graphviz DOT-Syntax
+digraph FormelSyntax {
+    rankdir=LR;
+    node [shape=box, fontname="Helvetica", fontsize=11];
+    edge [fontname="Helvetica", fontsize=10];
+
+    subgraph cluster_formel {
+        label="Formel-String (menschenlesbar)";
+        style=dashed;
+        Formel [label="Jahresnettogehalt/12\n(Variablenname im Pseudocode)"];
+    }
+
+    subgraph cluster_variable {
+        label="Variable in variablen[]";
+        style=dashed;
+        VarName [label="name: Jahresnettogehalt"];
+        RefId [label="referenz_berechnungsvorschrift_id: uuid-BV2\n(maschinenlesbar)"];
+    }
+
+    subgraph cluster_bv {
+        label="Referenzierte BV";
+        style=dashed;
+        BV2 [label="Jahresnettogehalt\n(Berechnungsvorschrift)"];
+    }
+
+    Formel -> VarName [label="exakt gleich"];
+    VarName -> RefId;
+    RefId -> BV2 [label="verweist auf"];
+}

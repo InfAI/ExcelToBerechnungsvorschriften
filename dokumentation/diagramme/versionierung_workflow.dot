@@ -1,4 +1,5 @@
 // Lebenszyklus einer Berechnungsvorschrift: Erstellung -> Aenderung -> Neue Version -> Historie
+// Inkl. Account-Referenz (erstellt_von, geaendert_von)
 // Wartbar, versionierbar - Graphviz DOT-Syntax
 digraph VersionierungWorkflow {
     rankdir=TB;
@@ -7,10 +8,10 @@ digraph VersionierungWorkflow {
 
     Start [label="Start", shape=ellipse];
     Erstellen [label="Berechnungsvorschrift\nerstellen"];
-    Version1 [label="Version 1\n(erstellt_am)"];
+    Version1 [label="Version 1\n(erstellt_am, erstellt_von)"];
     Bearbeiten [label="Bearbeiten\n(Name, Formel, Metadaten)"];
-    NeueVersion [label="Neue Version\n(version++, geaendert_am)"];
-    Historie [label="Historie anzeigen\n(alle Versionen)"];
+    NeueVersion [label="Neue Version\n(version++, geaendert_am, geaendert_von)"];
+    Historie [label="Historie anzeigen\n(alle Versionen + Account)"];
     Ende [label="Ende", shape=ellipse];
 
     Start -> Erstellen;

@@ -18,5 +18,8 @@ Voraussetzung: [Graphviz](https://graphviz.org/) muss installiert sein (z.B. `ap
 | `versionierung_workflow.dot` | `versionierung_workflow.png` | 02_versionierungskonzept.md |
 | `wartung_workflow.dot` | `wartung_workflow.png` | 03_wartung.md |
 | `abhaendigkeiten.dot` | `abhaendigkeiten.png` | 01_definition.md |
+| `transfer_ablauf.dot` | `transfer_ablauf.png` | 03_wartung.md |
+| `formel_syntax.dot` | `formel_syntax.png` | 01_definition.md (Zwei-Ebenen-Modell) |
+| `zusammenfuehrung_ablauf.dot` | `zusammenfuehrung_ablauf.png` | 05_zusammenfuehrung.md |
 
 Die PNG-Dateien sind Platzhalter, bis `render.sh` mit installiertem Graphviz ausgeführt wird.

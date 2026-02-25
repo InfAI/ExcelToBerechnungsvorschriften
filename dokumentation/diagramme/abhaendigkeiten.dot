@@ -1,5 +1,6 @@
 // Abhaengigkeitsgraph zwischen Berechnungsvorschriften
 // "Verwendet folgende BVs" / "Wird verwendet in"
+// Pfeil = Variable mit referenz_berechnungsvorschrift_id (verlinkt)
 // Wartbar, versionierbar - Graphviz DOT-Syntax
 digraph Abhaengigkeiten {
     rankdir=TB;
@@ -12,8 +13,6 @@ digraph Abhaengigkeiten {
     BV3 [label="Bruttogehalt\n(primitive Variable)"];
 
     // Pfeil bedeutet: "verwendet"
-    BV1 -> BV2 [label="verwendet"];
-    BV2 -> BV3 [label="verwendet"];
-
-    // Umgekehrt: "wird verwendet in" (implizit durch Pfeilrichtung)
+    BV1 -> BV2 [label="verwendet\n(Variable Jahresnettogehalt)"];
+    BV2 -> BV3 [label="verwendet\n(Variable Bruttogehalt)"];
 }

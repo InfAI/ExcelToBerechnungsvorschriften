@@ -14,6 +14,7 @@ Diese Dokumentation beschreibt **fachlich und konzeptionell**, wie Berechnungsvo
 | [02 Versionierungskonzept](02_versionierungskonzept.md) | Versionierungsstrategien und Optionen (fachlich) |
 | [03 Wartung](03_wartung.md) | Wartungsabläufe, Workflows, Pflege im Webbrowser |
 | [04 Formel-Wartbarkeit](04_formel_wartbarkeit.md) | Pseudocode-Regeln, Unterstützung für Nichtinformatiker |
+| [05 Zusammenführung](05_zusammenfuehrung.md) | Konzept zum Zusammenführen mehrerer BVs, potenzielle Probleme |
 
 ## Diagramme
 

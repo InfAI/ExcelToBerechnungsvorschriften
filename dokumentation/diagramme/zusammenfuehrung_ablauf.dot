@@ -1,0 +1,38 @@
+// Ablauf: Zusammenfuehrung mehrerer Berechnungsvorschriften zu einer
+// Aus 05_zusammenfuehrung.md
+// Wartbar, versionierbar - Graphviz DOT-Syntax
+digraph ZusammenfuehrungAblauf {
+    rankdir=TB;
+    node [shape=box, fontname="Helvetica", fontsize=11];
+    edge [fontname="Helvetica", fontsize=10];
+
+    subgraph cluster_vorher {
+        label="Vorher (viele einfache BVs)";
+        style=dashed;
+        BV_A [label="BV A"];
+        BV_B [label="BV B"];
+        BV_C [label="BV C"];
+    }
+
+    subgraph cluster_schritte {
+        label="Zusammenfuehrung";
+        style=dashed;
+        Auswahl [label="1. Auswahl\n(Menge der BVs)"];
+        Pruefung [label="2. Pruefung\n(Zirkularitaet, externe Ref.)"];
+        Wurzel [label="3. Wurzel-BV\nbestimmen"];
+        Formel [label="4. Formel-Aufbau\n(Substitution)"];
+        Variablen [label="5. Variablen\nkonsolidieren"];
+        Referenz [label="6. Externe Ref.\nanpassen"];
+    }
+
+    subgraph cluster_nachher {
+        label="Nachher";
+        style=dashed;
+        BV_Neu [label="Neue BV\n(archivierte Alte)"];
+    }
+
+    BV_A -> Auswahl;
+    BV_B -> Auswahl;
+    BV_C -> Auswahl;
+    Auswahl -> Pruefung -> Wurzel -> Formel -> Variablen -> Referenz -> BV_Neu;
+}

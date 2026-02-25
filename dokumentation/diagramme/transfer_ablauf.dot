@@ -1,0 +1,30 @@
+// Datenfluss: ExcelToBerechnungsvorschriften -> IAK Farmaxis
+// Erzeugung primaer in ExcelToBerechnungsvorschriften, Transfer zu IAK Farmaxis
+// Wartbar, versionierbar - Graphviz DOT-Syntax
+digraph TransferAblauf {
+    rankdir=LR;
+    node [shape=box, fontname="Helvetica", fontsize=11];
+    edge [fontname="Helvetica", fontsize=10];
+
+    subgraph cluster_excel {
+        label="ExcelToBerechnungsvorschriften (Quelle)";
+        style=dashed;
+        ExcelEingabe [label="Excel-Zellendaten"];
+        Erzeugung [label="Erzeugung\n(Pseudocode, Verlinkung)"];
+        BVs [label="Berechnungsvorschriften"];
+    }
+
+    subgraph cluster_transfer {
+        label="Transfer-Prozess";
+        style=dashed;
+        Transfer [label="Transfer\n(manuell / Schnittstelle / automatisiert)"];
+    }
+
+    subgraph cluster_iak {
+        label="IAK Farmaxis (Zielanwendung)";
+        style=dashed;
+        Pflege [label="Pflege im Webbrowser\n(Anzeigen, Bearbeiten, Suchen)"];
+    }
+
+    ExcelEingabe -> Erzeugung -> BVs -> Transfer -> Pflege;
+}
