@@ -4,7 +4,7 @@
 
 Diese Dokumentation beschreibt **fachlich und konzeptionell**, wie Berechnungsvorschriften versioniert und gewartet werden können. Sie ist eigenständig und verzichtet bewusst auf technische Aspekte wie Datenhaltung oder Implementierungsdetails.
 
-**Zielgruppe:** Fachverantwortliche, die Berechnungsvorschriften in der Anwendung IAK Farmaxis im Webbrowser pflegen – mit Fokus auf Wartbarkeit für Nichtinformatiker.
+**Zielgruppe:** Fachverantwortliche, die Berechnungsvorschriften in der Anwendung IAK Farmaxis im Webbrowser pflegen – mit Fokus auf Wartbarkeit für Nichtinformatiker. IAK Farmaxis soll künftig der zentrale Pflegeort für Berechnungsvorschriften sein (im Sinne von [Master Data Management](07_konzeptioneller_rahmen.md)).
 
 ## Inhaltsverzeichnis
 
@@ -16,6 +16,7 @@ Diese Dokumentation beschreibt **fachlich und konzeptionell**, wie Berechnungsvo
 | [04 Formel-Wartbarkeit](04_formel_wartbarkeit.md) | Pseudocode-Regeln, Unterstützung für Nichtinformatiker |
 | [05 Zusammenführung](05_zusammenfuehrung.md) | Konzept zum Zusammenführen mehrerer BVs, potenzielle Probleme |
 | [06 Technische Handhabung](06_technische_handhabung.md) | Fallstricke, Besonderheiten, Matching-Prioritäten, Identifikatoren |
+| [07 Konzeptioneller Rahmen](07_konzeptioneller_rahmen.md) | Etablierte Konzepte (DAG, DSL, MDM, Provenance, etc.) |
 
 ## Diagramme
 

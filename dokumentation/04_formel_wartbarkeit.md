@@ -4,6 +4,8 @@
 
 Berechnungsvorschriften sollen von Fachverantwortlichen ohne Programmierkenntnisse verstanden und gepflegt werden können. Dafür sind klare Pseudocode-Regeln und geeignete UI-Unterstützung erforderlich.
 
+Der Pseudocode ist eine [Domain-Specific Language](https://en.wikipedia.org/wiki/Domain-specific_language) (DSL) – eine kleine, fachlich definierte Sprache für Formeln. Siehe [07 Konzeptioneller Rahmen](07_konzeptioneller_rahmen.md).
+
 ## Pseudocode-Regeln
 
 Die Formel (Pseudocode) folgt folgenden Regeln:

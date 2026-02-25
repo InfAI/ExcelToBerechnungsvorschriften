@@ -89,13 +89,13 @@ Mehrere Berechnungsvorschriften werden zu **einer** Berechnungsvorschrift zusamm
 
 **Problem:** Die zu zusammenführenden BVs haben unterschiedliche Kategorien, Einheiten oder Datentypen.
 
-**Lösung:** Der Anwender muss die Metadaten der neuen BV explizit festlegen. Das System warnt bei Inkonsistenzen und schlägt einen Default vor (z.B. aus der „Haupt-BV“).
+**Lösung:** **Benutzerentscheidung bei Konflikten** – der Anwender muss die Metadaten der neuen BV explizit festlegen. Das System warnt bei Inkonsistenzen und schlägt einen Default vor (z.B. aus der „Haupt-BV“). Siehe [07 Konzeptioneller Rahmen](07_konzeptioneller_rahmen.md).
 
 ### 6. Reihenfolge und Auswertung
 
 **Problem:** Bei der Zusammenführung muss die Auswertungsreihenfolge stimmen – Variablen müssen vor ihrer Verwendung definiert sein.
 
-**Lösung:** Die Zusammenführung erfolgt entlang des Abhängigkeitsgraphen (topologische Sortierung). Die resultierende Formel wird so aufgebaut, dass die Reihenfolge korrekt ist.
+**Lösung:** Die Zusammenführung erfolgt entlang des Abhängigkeitsgraphen mittels [topologischer Sortierung](https://en.wikipedia.org/wiki/Topological_sorting) – dem Standardverfahren für DAGs, um eine lineare Reihenfolge zu ermitteln. Die resultierende Formel wird so aufgebaut, dass die Reihenfolge korrekt ist. Siehe [07 Konzeptioneller Rahmen](07_konzeptioneller_rahmen.md).
 
 ## Empfehlung
 

@@ -13,7 +13,7 @@ Unabhängig von der gewählten Versionierungsstrategie sollte jede Version einen
 | `erstellt_von` | Account, der die Berechnungsvorschrift angelegt hat |
 | `geaendert_von` | Account, der die letzte Änderung (diese Version) vorgenommen hat |
 
-Damit ist jeder Versionsstand einer Person zuordenbar – für Audit, Nachverfolgung und Rückfragen.
+Damit ist jeder Versionsstand einer Person zuordenbar – für Audit, Nachverfolgung und Rückfragen. Dies entspricht dem Konzept der [Provenance](https://www.w3.org/TR/prov-overview/) (Herkunft, Wer/Wann/Was) und [Data Lineage](https://en.wikipedia.org/wiki/Data_lineage) (Nachverfolgbarkeit der Datenherkunft). Siehe [07 Konzeptioneller Rahmen](07_konzeptioneller_rahmen.md).
 
 ## Versionierungsoptionen (unterschiedliche Strategien)
 
@@ -26,7 +26,7 @@ Damit ist jeder Versionsstand einer Person zuordenbar – für Audit, Nachverfol
 
 ### Option B: Vollständige Historie mit allen Versionen
 
-- **Prinzip:** Jede Änderung erzeugt eine neue Version. Alle Versionen bleiben erhalten und sind abrufbar. Jede Version ist unveränderlich (immutable).
+- **Prinzip:** Jede Änderung erzeugt eine neue Version. Alle Versionen bleiben erhalten und sind abrufbar. Jede Version ist unveränderlich ([Immutability](https://en.wikipedia.org/wiki/Immutable_object)) – Daten werden nicht überschrieben, sondern neue Zustände angehängt.
 - **Vorteil:** Vollständige Nachvollziehbarkeit, Wiederherstellung alter Versionen möglich, Audit-Trail.
 - **Nachteil:** Höherer Speicherbedarf, Historie muss gepflegt und abgefragt werden können.
 - **Einsatz:** Wenn Nachvollziehbarkeit, Compliance oder Audit-Anforderungen relevant sind.

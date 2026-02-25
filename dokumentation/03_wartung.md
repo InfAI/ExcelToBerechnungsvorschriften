@@ -29,6 +29,8 @@ Die erzeugten Berechnungsvorschriften werden in einem **Prozess** zu IAK Farmaxi
 
 ### Pflege im Webbrowser (IAK Farmaxis)
 
+**IAK Farmaxis** soll künftig der zentrale Ort sein, an dem Berechnungsvorschriften gepflegt werden. Im Sinne von [Master Data Management](https://en.wikipedia.org/wiki/Master_data_management) (MDM) sind Berechnungsvorschriften fachlich relevante Stammdaten – Kategorien, Einheiten, Formeln – die zentral gepflegt und in Anwendungen genutzt werden. Siehe [07 Konzeptioneller Rahmen](07_konzeptioneller_rahmen.md).
+
 In IAK Farmaxis können Berechnungsvorschriften:
 
 - **angezeigt** werden (Details, Abhängigkeiten)

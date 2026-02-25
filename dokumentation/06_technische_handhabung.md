@@ -40,7 +40,9 @@ Diese Fallstricke gelten unabhängig von der konkreten Implementierung. Anwendun
 
 ### Matching-Prioritäten (Verlinkung)
 
-Die Reihenfolge der Matching-Strategien entscheidet, welche BV verlinkt wird, wenn mehrere Kandidaten existieren. Theoretisch sinnvolle Priorität:
+Die Reihenfolge der Matching-Strategien entscheidet, welche BV verlinkt wird, wenn mehrere Kandidaten existieren. Dies entspricht dem Konzept der [Entity Resolution](https://en.wikipedia.org/wiki/Record_linkage) (Record Linkage) – der Zuordnung von Referenzen zu Entitäten bei Ambiguität. Siehe [07 Konzeptioneller Rahmen](07_konzeptioneller_rahmen.md).
+
+Theoretisch sinnvolle Priorität:
 
 1. **Zelle + Blatt** (exakt): Zellenidentifikator und Tabellenblatt der Variable stimmen mit der Quelle einer BV überein. Höchste Zuverlässigkeit.
 2. **Excel-Identifikator**: Wenn die Variable einem Excel-Named-Range-Identifikator entspricht, Suche nach BV mit diesem Identifikator. Relevant bei Import aus Excel.
@@ -56,13 +58,13 @@ Nach Anlegen einer neuen BV können andere BVs eine Variable haben, die nun auf 
 
 ### Zirkuläre Abhängigkeiten
 
-- **Definition:** Eine zirkuläre Abhängigkeit liegt vor, wenn A→B→C→…→A (A referenziert B, B referenziert C, … C referenziert A).
+- **Definition:** Eine zirkuläre Abhängigkeit liegt vor, wenn A→B→C→…→A (A referenziert B, B referenziert C, … C referenziert A). Der Abhängigkeitsgraph soll ein [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph) (Directed Acyclic Graph) sein – azyklisch, ohne Zyklen. Siehe [07 Konzeptioneller Rahmen](07_konzeptioneller_rahmen.md).
 - **Prüfung:** Bei jeder Verlinkung oder Rückwärts-Verlinkung muss rekursiv geprüft werden, ob die Ziel-BV (direkt oder indirekt) die Ausgangs-BV referenziert.
 - **Endlosschleifen:** Bei fehlerhaften oder unvollständigen Daten kann die Prüfung in eine Schleife geraten – ein Besucht-Set verhindert das.
 
 ### Löschen
 
-- **Referenzprüfung:** Eine BV, die von anderen referenziert wird, sollte nicht gelöscht werden können – oder nur mit expliziter Bestätigung und Kaskadierung (z.B. Referenzen aufheben).
+- **Referenzprüfung:** Eine BV, die von anderen referenziert wird, sollte nicht gelöscht werden können – oder nur mit expliziter Bestätigung und Kaskadierung (z.B. Referenzen aufheben). Dies entspricht dem Konzept der [referentiellen Integrität](https://en.wikipedia.org/wiki/Referential_integrity) – Referenzen müssen konsistent behandelt werden.
 - **Konsequenz:** Die Anwendung muss vor dem Löschen prüfen, ob Referenzen existieren, und den Benutzer entsprechend informieren.
 
 ### Auswertungstyp (operation)
@@ -95,7 +97,7 @@ Nach Anlegen einer neuen BV können andere BVs eine Variable haben, die nun auf 
 
 ### Vollständigkeit der Quelle
 
-- Für zuverlässiges Matching nach Zelle: Tabellenidentifikator, Tabellenblatt und Zellenidentifikator sollten vollständig sein.
+- Für zuverlässiges Matching nach Zelle: Tabellenidentifikator, Tabellenblatt und Zellenidentifikator sollten vollständig sein. Dies unterstützt [Data Lineage](https://en.wikipedia.org/wiki/Data_lineage) – die Nachverfolgbarkeit der Datenherkunft für Compliance und Audit. Siehe [07 Konzeptioneller Rahmen](07_konzeptioneller_rahmen.md).
 - Bei Cross-Sheet-Referenzen: Die Variable muss das Tabellenblatt der referenzierten Zelle kennen (tabellenblatt_referenz).
 
 ### Performance bei vielen Daten

@@ -2,7 +2,9 @@
 
 ## Was ist eine Berechnungsvorschrift?
 
-Eine **Berechnungsvorschrift** ist ein strukturiertes Objekt, das die Berechnung eines Wertes beschreibt. Sie besteht aus:
+Eine **Berechnungsvorschrift** ist ein strukturiertes Objekt, das die Berechnung eines Wertes beschreibt. Im Sinne einer [Business Rules Engine](https://en.wikipedia.org/wiki/Business_rules_engine) sind Berechnungsvorschriften **Geschäftsregeln** – wenn-dann-Logik und Formeln, die definiert und ausgewertet werden können.
+
+Sie besteht aus:
 
 | Bestandteil | Beschreibung |
 |-------------|--------------|
@@ -38,6 +40,8 @@ Eine Variable verweist auf eine andere Berechnungsvorschrift über:
 
 Bei primitiven Variablen ist `referenz_berechnungsvorschrift_id` leer; der Wert kommt aus einer externen Quelle (z.B. Excel-Zelle).
 
+**Referentielle Integrität:** Das Feld `referenz_berechnungsvorschrift_id` verweist auf eine andere BV. Wenn die referenzierte BV gelöscht wird, entstehen „tote“ Referenzen. Das Konzept der [referentiellen Integrität](https://en.wikipedia.org/wiki/Referential_integrity) fordert, dass Referenzen konsistent behandelt werden (z.B. Löschen nur mit Prüfung oder Kaskadierung). Siehe [06 Technische Handhabung](06_technische_handhabung.md) und [07 Konzeptioneller Rahmen](07_konzeptioneller_rahmen.md).
+
 **Hinweis:** Es gibt zwei verschiedene Identifikatoren für Matching: `quelle.zellenidentifikator` (Excel-Zelle wie A1, D7) und `excel_identifikator` (Excel-Named-Range wie _1_Wert). Beide können für die Verlinkung relevant sein – je nachdem, ob die Formel auf eine Zelle oder eine Named Range verweist. Siehe [06 Technische Handhabung](06_technische_handhabung.md) für Details.
 
 ![Zwei-Ebenen-Modell: Formel-Syntax](diagramme/formel_syntax.png)
@@ -51,7 +55,7 @@ Für jede Berechnungsvorschrift werden zwei Listen geführt:
 
 ## Formel-Syntax (Pseudocode)
 
-Die Formel wird als **Pseudocode** dargestellt – sowohl **menschenlesbar** als auch **maschinenlesbar** für die Auswertung.
+Die Formel wird als **Pseudocode** dargestellt – sowohl **menschenlesbar** als auch **maschinenlesbar** für die Auswertung. Der Pseudocode ist eine kleine, fachlich definierte Sprache für Formeln – eine [Domain-Specific Language](https://en.wikipedia.org/wiki/Domain-specific_language) (DSL). Siehe [07 Konzeptioneller Rahmen](07_konzeptioneller_rahmen.md).
 
 ### Grundprinzipien
 
@@ -85,7 +89,7 @@ Die Formel wird als **Pseudocode** dargestellt – sowohl **menschenlesbar** als
 
 ## Abhängigkeitsgraph
 
-Die Abhängigkeiten zwischen Berechnungsvorschriften lassen sich als Graph darstellen:
+Die Abhängigkeiten zwischen Berechnungsvorschriften lassen sich als Graph darstellen. Der Graph soll **azyklisch** sein – zirkuläre Abhängigkeiten (A→B→C→A) sind verboten. Dies entspricht dem Konzept eines [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph) (Directed Acyclic Graph). Siehe [07 Konzeptioneller Rahmen](07_konzeptioneller_rahmen.md).
 
 ![Abhängigkeitsgraph](diagramme/abhaendigkeiten.png)
 
