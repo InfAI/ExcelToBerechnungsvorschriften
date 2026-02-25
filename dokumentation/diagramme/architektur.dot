@@ -1,0 +1,55 @@
+// Systemarchitektur Excel zu Berechnungsvorschriften
+// Komponenten und Datenfluss
+digraph Architektur {
+    rankdir=TB;
+    node [shape=box, fontname="Helvetica", fontsize=11];
+    edge [fontname="Helvetica", fontsize=10];
+
+    subgraph cluster_extern {
+        label="Extern";
+        style=dashed;
+        Benutzer [label="Benutzer\n(Webbrowser)"];
+        Excel [label="Excel-Datei\n(.xlsx)"];
+        OpenAI [label="OpenAI API\n(gpt-4.1-nano)"];
+    }
+
+    subgraph cluster_system {
+        label="Docker Compose";
+        style=rounded;
+
+        subgraph cluster_frontend {
+            label="Frontend";
+            Nginx [label="nginx\n(Port 80)\nHTML/JS, Bootstrap"];
+        }
+
+        subgraph cluster_backend {
+            label="Backend (FastAPI)";
+            API [label="REST API\n(Port 8000)"];
+            LLM [label="LLM-Service"];
+            Matcher [label="Matcher\n(Verlinkung)"];
+            Version [label="Versionierung"];
+        }
+
+        subgraph cluster_daten {
+            label="Daten";
+            Fuseki [label="Apache Jena Fuseki\n(Port 3030)\nRDF-Triplestore"];
+        }
+
+        subgraph cluster_script {
+            label="Import (optional)";
+            ExcelImport [label="excel_import.py\nYAML-Config"];
+        }
+    }
+
+    Benutzer -> Nginx [label="HTTP"];
+    Nginx -> API [label="API-Calls"];
+    API -> LLM;
+    API -> Matcher;
+    API -> Version;
+    LLM -> OpenAI [label="Formel -> Pseudocode"];
+    API -> Fuseki [label="SPARQL"];
+    Matcher -> Fuseki [label="SPARQL"];
+    Version -> Fuseki [label="SPARQL"];
+    ExcelImport -> Excel [label="liest"];
+    ExcelImport -> API [label="POST (--import)"];
+}
