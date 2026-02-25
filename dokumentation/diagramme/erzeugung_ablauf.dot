@@ -1,0 +1,30 @@
+// Ablauf: Excel-Zellendaten -> Berechnungsvorschrift (konzeptionell)
+// Wartbar, versionierbar - Graphviz DOT-Syntax
+digraph ErzeugungAblauf {
+    rankdir=TB;
+    node [shape=box, fontname="Helvetica", fontsize=11];
+    edge [fontname="Helvetica", fontsize=10];
+
+    subgraph cluster_eingabe {
+        label="Eingabe";
+        style=dashed;
+        ExcelZellen [label="Excel-Zellendaten\n(Tabelle, Blatt, Zelle, Beschreibung, Formel)"];
+    }
+
+    subgraph cluster_verarbeitung {
+        label="Verarbeitung";
+        style=dashed;
+        Pseudocode [label="Pseudocode-Umwandlung\n(Excel-Syntax -> menschenlesbar)"];
+        Verlinkung [label="Variablen-Verlinkung\n(Matching mit bestehenden BVs)"];
+    }
+
+    subgraph cluster_ausgabe {
+        label="Ausgabe";
+        style=dashed;
+        Berechnungsvorschrift [label="Berechnungsvorschrift\n(Name, Formel, Variablen, Metadaten)"];
+    }
+
+    ExcelZellen -> Pseudocode [label="1"];
+    Pseudocode -> Verlinkung [label="2"];
+    Verlinkung -> Berechnungsvorschrift [label="3"];
+}

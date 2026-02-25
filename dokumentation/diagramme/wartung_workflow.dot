@@ -1,0 +1,25 @@
+// Benutzeraktionen in IAK Farmaxis: Suche, Bearbeiten, Verlinkung, Historie
+// Wartbar, versionierbar - Graphviz DOT-Syntax
+digraph WartungWorkflow {
+    rankdir=TB;
+    node [shape=box, fontname="Helvetica", fontsize=11];
+    edge [fontname="Helvetica", fontsize=10];
+
+    subgraph cluster_benutzer {
+        label="Benutzer im Webbrowser (IAK Farmaxis)";
+        style=dashed;
+
+        Suche [label="Suche\n(Metadaten: Name, Kategorie, Symbol)"];
+        Anzeigen [label="Anzeigen\n(BV-Details, Abhaengigkeiten)"];
+        Bearbeiten [label="Bearbeiten\n(Formel, Metadaten)"];
+        Verlinkung [label="Verlinkung aendern\n(aufheben, manuell setzen)"];
+        Historie [label="Historie anzeigen\n(Versionsverlauf)"];
+    }
+
+    Suche -> Anzeigen;
+    Anzeigen -> Bearbeiten [label="Bearbeiten"];
+    Anzeigen -> Verlinkung [label="Variable anpassen"];
+    Anzeigen -> Historie [label="Versionen"];
+    Bearbeiten -> Anzeigen [label="Speichern"];
+    Verlinkung -> Anzeigen [label="Speichern"];
+}
