@@ -1,7 +1,8 @@
 """
-LLM-Service für die Generierung von Berechnungsvorschriften mit OpenAI GPT-5-nano
+LLM-Service für die Generierung von Berechnungsvorschriften mit OpenAI gpt-4o-mini
 """
 import os
+import re
 import json
 import logging
 from pathlib import Path
@@ -13,6 +14,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from models.zelleneingabe import Zelleneingabe
 from models.berechnungsvorschrift import Berechnungsvorschrift, Metadaten, Variable
+from utils.formel_utils import zellreferenzen_aus_formel, tabellenspalten_aus_formel
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +29,10 @@ class LLMService:
             raise ValueError("OPENAI_API_KEY Umgebungsvariable nicht gesetzt")
         
         self.client = OpenAI(api_key=api_key)
-        self.model = "gpt-4.1-nano"
-        logger.info(f"LLMService initialisiert: {self.model}")
+        self.model = "gpt-4o-mini"
+        # Niedrige Temperatur für konsistentere Extraktion von Zellreferenzen und Variablen
+        self.temperature = float(os.getenv("LLM_TEMPERATURE", "0.3"))
+        logger.info(f"LLMService initialisiert: {self.model} (Temperatur: {self.temperature})")
         
         # Prompt und Beispiel laden
         self.prompt_path = Path(__file__).parent.parent / "prompts" / "berechnungsvorschrift_prompt.txt"
@@ -78,6 +82,39 @@ class LLMService:
             if getattr(zelleneingabe, "kategorie", None) and str(zelleneingabe.kategorie).strip()
             else ""
         )
+        # Vorab-Extraktion: Zellreferenzen und Tabellenspalten als Hinweis für das LLM
+        zellref_hinweis = ""
+        tabellen_hinweis = ""
+        try:
+            zellrefs = zellreferenzen_aus_formel(zelleneingabe.formel)
+            if zellrefs:
+                zellref_hinweis = "\n\nWICHTIG – Zellreferenzen (müssen als Variable mit zellenidentifikator/tabellenblatt_referenz, Namensschema Blatt_Zelle):\n"
+                for r in zellrefs:
+                    blatt_info = f" (Blatt: {r['blatt']})" if r.get("blatt") else " (gleiches Blatt)"
+                    # Vorschlag: Blatt_Zelle (z.B. Intern_Bezüge_D3 für INTERN BEZÜGE!D3)
+                    vorschlag = ""
+                    if r.get("blatt"):
+                        blatt_safe = r["blatt"].replace(" ", "_").replace("'", "")
+                        vorschlag = f" → z.B. {blatt_safe}_{r['zelle']}"
+                    zellref_hinweis += f"  - {r['zelle']}{blatt_info}{vorschlag}\n"
+        except Exception as e:
+            logger.debug(f"Zellreferenz-Extraktion fehlgeschlagen (wird ignoriert): {e}")
+        try:
+            tabellen = tabellenspalten_aus_formel(zelleneingabe.formel)
+            if tabellen:
+                tabellen_hinweis = "\n\nWICHTIG – Tabellenspalten (jede = eigene Variable, Namensschema Spalte_JahrN aus Tabelle):\n"
+                for t in tabellen:
+                    # JahrN aus Tabellennamen ableiten (MAJahr1 → Jahr1, MAJahr2 → Jahr2)
+                    jahr_match = re.search(r"Jahr(\d+)$", t["tabelle"], re.IGNORECASE)
+                    jahr_suffix = f"Jahr{jahr_match.group(1)}" if jahr_match else t["tabelle"]
+                    # Spalte zu Variablenbasis: Sonderzeichen entfernen, Leerzeichen → _, kürzen
+                    spalte_safe = re.sub(r"[^\w\s]", "", t["spalte"]).replace(" ", "_")[:28]
+                    if not spalte_safe:
+                        spalte_safe = "Spalte"
+                    vorschlag = f" → z.B. {spalte_safe}_{jahr_suffix}"
+                    tabellen_hinweis += f"  - {t['tabelle']}[{t['spalte']}]{vorschlag}\n"
+        except Exception as e:
+            logger.debug(f"Tabellenspalten-Extraktion fehlgeschlagen (wird ignoriert): {e}")
         user_prompt = f"""Bitte wandle folgende Excel-Zelle in eine Berechnungsvorschrift um:
 
 Tabellenidentifikator: {zelleneingabe.tabellenidentifikator}
@@ -85,7 +122,7 @@ Tabellenblatt: {zelleneingabe.tabellenblatt}
 Zellenidentifikator: {zelleneingabe.zellenidentifikator}
 Beschreibung: {zelleneingabe.beschreibung}
 Formel: {zelleneingabe.formel}
-{kategorie_hinweis}
+{kategorie_hinweis}{zellref_hinweis}{tabellen_hinweis}
 
 Beispiel für das gewünschte Format:
 {self.beispiel_text}
@@ -93,16 +130,15 @@ Beispiel für das gewünschte Format:
 Bitte generiere die Berechnungsvorschrift im JSON-Format wie im Beispiel gezeigt."""
         
         try:
-            logger.debug(f"Sende Request an OpenAI API ({self.model})")
-            # LLM-Request
-            # Hinweis: GPT-5-nano unterstützt keine benutzerdefinierte Temperatur, daher wird der Standardwert (1) verwendet
+            logger.debug(f"Sende Request an OpenAI API ({self.model}, Temperatur: {self.temperature})")
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                response_format={"type": "json_object"}  # JSON-Format erzwingen
+                response_format={"type": "json_object"},
+                temperature=self.temperature,
             )
             
             # Antwort parsen

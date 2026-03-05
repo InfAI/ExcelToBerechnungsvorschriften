@@ -20,6 +20,7 @@ services:
       - FUSEKI_URL=http://fuseki:3030
       - FUSEKI_DATASET=berechnungsvorschriften
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.3}
       - RDF_NAMESPACE=${RDF_NAMESPACE}
       - FUSEKI_USER=${FUSEKI_USER}
       - FUSEKI_PASSWORD=${FUSEKI_PASSWORD}

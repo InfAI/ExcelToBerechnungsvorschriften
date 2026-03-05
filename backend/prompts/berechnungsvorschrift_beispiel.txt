@@ -169,3 +169,33 @@ JSON:
 }
 
 Erklärung: G19 liegt im Blatt "1. Lohn AW", die Formel in "Übersicht". tabellenblatt_referenz zwingend – ohne dies sucht Matching nur im Formel-Blatt und findet die BV für G19 nicht.
+
+---
+
+BEISPIEL 8 – SUM(COUNTIFS(...)) mit Cross-Sheet-Kriterien und Tabellenspalten
+
+EINGABE:
+Tabellenidentifikator: Soziales
+Tabellenblatt: 2. Arbeitszeit AW
+Zellenidentifikator: B8
+Beschreibung: Anzahl MA – Vollzeit festangestellt
+Formel: =SUM(COUNTIFS(MAJahr1[Angestelltenverhältnis],'INTERN BEZÜGE'!$D$3,MAJahr1[Wie viele Monate des Jahres im Betrieb angestellt?],'INTERN BEZÜGE'!E5),COUNTIFS(MAJahr2[Angestelltenverhältnis],'INTERN BEZÜGE'!$D$3,MAJahr2[Wie viele Monate des Jahres im Betrieb angestellt?],'INTERN BEZÜGE'!E5),COUNTIFS(MAJahr3[Angestelltenverhältnis],'INTERN BEZÜGE'!$D$3,MAJahr3[Wie viele Monate des Jahres im Betrieb angestellt?],'INTERN BEZÜGE'!E5))
+
+JSON:
+{
+  "name": "N/A",
+  "formel": "Anzahl(Angestelltenverhältnis_Jahr1=Intern_Bezüge_D3, Monate_im_Betrieb_Jahr1=Intern_Bezüge_E5) + Anzahl(Angestelltenverhältnis_Jahr2=Intern_Bezüge_D3, Monate_im_Betrieb_Jahr2=Intern_Bezüge_E5) + Anzahl(Angestelltenverhältnis_Jahr3=Intern_Bezüge_D3, Monate_im_Betrieb_Jahr3=Intern_Bezüge_E5)",
+  "variablen": [
+    {"name": "Intern_Bezüge_D3", "ist_primitive": true, "zellenidentifikator": "D3", "tabellenblatt_referenz": "INTERN BEZÜGE"},
+    {"name": "Intern_Bezüge_E5", "ist_primitive": true, "zellenidentifikator": "E5", "tabellenblatt_referenz": "INTERN BEZÜGE"},
+    {"name": "Angestelltenverhältnis_Jahr1", "ist_primitive": true},
+    {"name": "Monate_im_Betrieb_Jahr1", "ist_primitive": true},
+    {"name": "Angestelltenverhältnis_Jahr2", "ist_primitive": true},
+    {"name": "Monate_im_Betrieb_Jahr2", "ist_primitive": true},
+    {"name": "Angestelltenverhältnis_Jahr3", "ist_primitive": true},
+    {"name": "Monate_im_Betrieb_Jahr3", "ist_primitive": true}
+  ],
+  "metadaten": {"kategorie": "Personal", "symbol": "AMV", "datentyp": "integer", "einheit": "Stk"}
+}
+
+Erklärung: Zellreferenzen D3, E5 (INTERN BEZÜGE) → Intern_Bezüge_D3, Intern_Bezüge_E5. Jede Tabellenspalte (MAJahr1[Angestelltenverhältnis], MAJahr1[Wie viele Monate...], ...) = eigene Variable mit Spalte_JahrN. Insgesamt 8 Variablen.
