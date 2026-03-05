@@ -18,6 +18,7 @@ Diese Dokumentation beschreibt **fachlich und konzeptionell**, wie Berechnungsvo
 | [06 Technische Handhabung](06_technische_handhabung.md) | Fallstricke, Besonderheiten, Matching-Prioritäten, Identifikatoren |
 | [07 Konzeptioneller Rahmen](07_konzeptioneller_rahmen.md) | Etablierte Konzepte (DAG, DSL, MDM, Provenance, etc.) |
 | [08 Warum nicht alle Formeln](08_warum_nicht_alle_formeln.md) | Begründung für selektive Überführung statt 1:1-Abbildung |
+| [09 LLM-Modell-Analyse](09_llm_modell_analyse_ansatz.md) | Alternativer Ansatz: LLM-gestützte Analyse zur Ableitung von Datenmodell und BWL-Pseudocode |
 
 ## Diagramme
 
