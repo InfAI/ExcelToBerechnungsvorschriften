@@ -102,19 +102,24 @@ class LLMService:
         try:
             tabellen = tabellenspalten_aus_formel(zelleneingabe.formel)
             if tabellen:
-                tabellen_hinweis = "\n\nWICHTIG – Tabellenspalten (jede = eigene Variable, Namensschema Spalte_JahrN aus Tabelle):\n"
+                # Bei COUNTIFS/SUMIFS: Tabellenspalten sind KEINE Variablen (Kriterienbereiche).
+                # Nur Kriterienzellen (Zellreferenzen) = Variablen. Tabellen dienen der Filterlogik.
+                tabellen_hinweis = "\n\nHINWEIS – Tabellenspalten in Formel (bei COUNTIFS/SUMIFS KEINE Variablen, nur Kriterienzellen):\n"
+                tabellen_namen = sorted(set(t["tabelle"] for t in tabellen))
+                tabellen_hinweis += f"  Tabellen: {', '.join(tabellen_namen)}\n"
                 for t in tabellen:
-                    # JahrN aus Tabellennamen ableiten (MAJahr1 → Jahr1, MAJahr2 → Jahr2)
-                    jahr_match = re.search(r"Jahr(\d+)$", t["tabelle"], re.IGNORECASE)
-                    jahr_suffix = f"Jahr{jahr_match.group(1)}" if jahr_match else t["tabelle"]
-                    # Spalte zu Variablenbasis: Sonderzeichen entfernen, Leerzeichen → _, kürzen
-                    spalte_safe = re.sub(r"[^\w\s]", "", t["spalte"]).replace(" ", "_")[:28]
-                    if not spalte_safe:
-                        spalte_safe = "Spalte"
-                    vorschlag = f" → z.B. {spalte_safe}_{jahr_suffix}"
-                    tabellen_hinweis += f"  - {t['tabelle']}[{t['spalte']}]{vorschlag}\n"
+                    tabellen_hinweis += f"  - {t['tabelle']}[{t['spalte']}] (Kriterienbereich, keine Variable)\n"
         except Exception as e:
             logger.debug(f"Tabellenspalten-Extraktion fehlgeschlagen (wird ignoriert): {e}")
+        # Aufgelöste Tabellenspalten aus Excel (referenz_bereiche) als Hinweis
+        referenz_hinweis = ""
+        if getattr(zelleneingabe, "referenz_bereiche", None) and zelleneingabe.referenz_bereiche:
+            referenz_hinweis = "\n\nAufgelöste Tabellenspalten (Blatt+Bereich aus Excel):\n"
+            for rb in zelleneingabe.referenz_bereiche:
+                ref_str = f"  {rb.get('tabelle', '?')}[{rb.get('spalte', '?')}]"
+                if rb.get("blatt"):
+                    ref_str += f" = '{rb['blatt']}'!{rb.get('bereich', '?')}"
+                referenz_hinweis += ref_str + "\n"
         user_prompt = f"""Bitte wandle folgende Excel-Zelle in eine Berechnungsvorschrift um:
 
 Tabellenidentifikator: {zelleneingabe.tabellenidentifikator}
@@ -122,7 +127,7 @@ Tabellenblatt: {zelleneingabe.tabellenblatt}
 Zellenidentifikator: {zelleneingabe.zellenidentifikator}
 Beschreibung: {zelleneingabe.beschreibung}
 Formel: {zelleneingabe.formel}
-{kategorie_hinweis}{zellref_hinweis}{tabellen_hinweis}
+{kategorie_hinweis}{zellref_hinweis}{tabellen_hinweis}{referenz_hinweis}
 
 Beispiel für das gewünschte Format:
 {self.beispiel_text}
@@ -174,14 +179,18 @@ Bitte generiere die Berechnungsvorschrift im JSON-Format wie im Beispiel gezeigt
         """Konvertiert ein Dictionary in ein Berechnungsvorschrift-Model"""
         from datetime import datetime
         
-        # Variablen konvertieren (inkl. zellenidentifikator, tabellenblatt_referenz für Matching)
+        # Variablen konvertieren (inkl. zellenidentifikator, tabellenblatt_referenz, erweiterte Felder)
         variablen = [
             Variable(
                 name=var["name"],
                 referenz_berechnungsvorschrift_id=None,  # Wird später vom Matcher gesetzt
                 ist_primitive=var.get("ist_primitive", True),
-                zellenidentifikator=var.get("zellenidentifikator"),  # D7, A9 etc. – für Matching
-                tabellenblatt_referenz=var.get("tabellenblatt_referenz")  # Fremd-Blatt bei Cross-Sheet-Referenzen
+                zellenidentifikator=var.get("zellenidentifikator"),
+                tabellenblatt_referenz=var.get("tabellenblatt_referenz"),
+                quelle_typ=var.get("quelle_typ"),
+                kriterienbereich=var.get("kriterienbereich"),
+                vergleichsoperator=var.get("vergleichsoperator"),
+                tabellenreferenz=var.get("tabellenreferenz"),
             )
             for var in data.get("variablen", [])
         ]
@@ -201,8 +210,9 @@ Bitte generiere die Berechnungsvorschrift im JSON-Format wie im Beispiel gezeigt
             beschreibung=zelleneingabe.beschreibung
         )
         
-        # Operation (optional) – z.B. "index_lookup" bei INDEX/MATCH; für Auswertung mit echten Werten
+        # Operation (optional) – z.B. "index_lookup" bei INDEX/MATCH, "count_filter" bei COUNTIFS
         operation = data.get("operation")
+        operation_parameter = data.get("operation_parameter")
         
         # Name: Immer die vom Benutzer im UI eingegebene Beschreibung verwenden.
         # Das LLM muss den Namen nicht mehr erzeugen – spart Tokens und gibt dem Nutzer Kontrolle.
@@ -212,6 +222,12 @@ Bitte generiere die Berechnungsvorschrift im JSON-Format wie im Beispiel gezeigt
         excel_identifikator = None
         if getattr(zelleneingabe, "excel_identifikator", None) and str(zelleneingabe.excel_identifikator).strip():
             excel_identifikator = zelleneingabe.excel_identifikator.strip()
+        
+        # Wichtig-Flag (z.B. aus Excel-Import-Config) – nur übergeben wenn gesetzt
+        wichtig = getattr(zelleneingabe, "wichtig", None) if hasattr(zelleneingabe, "wichtig") else None
+        bv_kwargs = {}
+        if wichtig is True:
+            bv_kwargs["wichtig"] = True
         
         # Berechnungsvorschrift erstellen.
         # formel_original: originale Excel-Formel aus der Eingabe – nur zur Information, nicht bearbeitbar
@@ -226,7 +242,53 @@ Bitte generiere die Berechnungsvorschrift im JSON-Format wie im Beispiel gezeigt
             erstellt_am=datetime.now(),
             geaendert_am=datetime.now(),
             operation=operation,
-            excel_identifikator=excel_identifikator
+            operation_parameter=operation_parameter,
+            excel_identifikator=excel_identifikator,
+            **bv_kwargs
         )
         
+        # Post-Processing: referenz_bereiche nutzen für kriterienbereich_blatt/bereich und tabellen_bereiche
+        if getattr(zelleneingabe, "referenz_bereiche", None) and zelleneingabe.referenz_bereiche:
+            berechnungsvorschrift = self._anreichern_aus_referenz_bereichen(
+                berechnungsvorschrift, zelleneingabe.referenz_bereiche
+            )
+        
         return berechnungsvorschrift
+    
+    def _anreichern_aus_referenz_bereichen(
+        self, bv: Berechnungsvorschrift, referenz_bereiche: list
+    ) -> Berechnungsvorschrift:
+        """
+        Reichert BV mit aufgelösten Bereichen aus referenz_bereiche an.
+        - Variable.kriterienbereich_blatt, kriterienbereich_bereich: aus erstem passenden Eintrag
+        - operation_parameter.tabellen_bereiche: pro Tabelle Blatt+Bereich (erster Spalteneintrag)
+        """
+        ref_by_spalte = {}  # spalte -> [{"tabelle", "spalte", "blatt", "bereich"}, ...]
+        ref_by_tabelle = {}  # tabelle -> {"blatt", "bereich"} (erster Eintrag)
+        for rb in referenz_bereiche:
+            spalte = rb.get("spalte")
+            tabelle = rb.get("tabelle")
+            if spalte:
+                ref_by_spalte.setdefault(spalte, []).append(rb)
+            if tabelle and "blatt" in rb and "bereich" in rb and tabelle not in ref_by_tabelle:
+                ref_by_tabelle[tabelle] = {"blatt": rb["blatt"], "bereich": rb["bereich"]}
+        
+        # Variablen: kriterienbereich_blatt, kriterienbereich_bereich
+        for var in bv.variablen:
+            kb = var.kriterienbereich
+            if kb and kb in ref_by_spalte and ref_by_spalte[kb]:
+                first = ref_by_spalte[kb][0]
+                var.kriterienbereich_blatt = first.get("blatt")
+                var.kriterienbereich_bereich = first.get("bereich")
+        
+        # operation_parameter.tabellen_bereiche
+        if bv.operation_parameter and "tabellen" in bv.operation_parameter:
+            tabellen_bereiche = {}
+            for t in bv.operation_parameter["tabellen"]:
+                if t in ref_by_tabelle:
+                    tabellen_bereiche[t] = ref_by_tabelle[t]
+            if tabellen_bereiche:
+                bv.operation_parameter = dict(bv.operation_parameter)
+                bv.operation_parameter["tabellen_bereiche"] = tabellen_bereiche
+        
+        return bv

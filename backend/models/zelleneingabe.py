@@ -1,7 +1,7 @@
 """
 Pydantic Model für Zelleneingabe (nur Input, wird nicht gespeichert)
 """
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 
 
@@ -25,6 +25,12 @@ class Zelleneingabe(BaseModel):
     wichtig: Optional[bool] = Field(
         None,
         description="Wenn true, wird die erstellte BV als wichtig gespeichert (Speicherung + Anzeige)"
+    )
+    # Optional: Aufgelöste Tabellenspalten-Referenzen aus Excel (z.B. MAJahr1[Angestelltenverhältnis] -> Blatt+Bereich).
+    # Wird vom Excel-Import gesetzt, wenn Referenz-Index die Auflösung liefert. Fallback: leer, LLM-Ausgabe bleibt maßgeblich.
+    referenz_bereiche: Optional[List[dict]] = Field(
+        None,
+        description="Aufgelöste Tabellenspalten: [{'tabelle': 'MAJahr1', 'spalte': 'Angestelltenverhältnis', 'blatt': '...', 'bereich': 'C6:C20'}]"
     )
     
     class Config:

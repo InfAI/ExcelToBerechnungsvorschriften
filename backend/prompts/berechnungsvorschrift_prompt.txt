@@ -13,15 +13,15 @@ REGELN FÜR DEN PSEUDOCODE (formel):
 2. Jede Wertquelle = genau eine Variable:
    - Zellreferenzen: zellenidentifikator setzen (A9→"A9", ohne $). Gleiche Zelle mehrfach = nur eine Variable. Namensschema für Cross-Sheet: Blatt_Zelle (z.B. Intern_Bezüge_D3 für 'INTERN BEZÜGE'!D3).
    - Cross-Sheet (='1. Lohn AW'.G19): zusätzlich tabellenblatt_referenz: "1. Lohn AW". Sonst findet Matching die BV nicht.
-   - Tabellenbezüge (MAJahr1[Spalte]): JEDE Tabellenspalte = eigene Variable, kein zellenidentifikator. Namensschema: Spalte_JahrN (z.B. Angestelltenverhältnis_Jahr1 für MAJahr1[Angestelltenverhältnis], Monate_im_Betrieb_Jahr2 für MAJahr2[Wie viele Monate...]). Bei mehreren Tabellen (MAJahr1, MAJahr2, MAJahr3) jede Spalte pro Tabelle als eigene Variable.
+   - Tabellenbezüge (MAJahr1[Spalte]): Bei SUMIFS/COUNTIFS: Tabellenspalten sind KEINE Variablen (Kriterienbereiche). Nur Kriterienzellen (Zellreferenzen) = Variablen. Bei anderen Formeln (z.B. SUMME(A1:A10) mit Tabellenbereich): jede Tabellenspalte als Wertquelle = eigene Variable, kein zellenidentifikator. Namensschema: Spalte_JahrN (z.B. Angestelltenverhältnis_Jahr1 für MAJahr1[Angestelltenverhältnis]).
    - formel darf nur Variablennamen aus variablen[] enthalten (exakt). Keine werttragenden Begriffe ohne Variable.
 
 3. Excel-Funktionen → Pseudocode:
    - SUMME(A1:A10) → "Wert1 + Wert2 + ... + Wert10" oder "Summe aller Werte" (mit konkreten Variablennamen).
    - WENN(Bedingung;Wert1;Wert2) → "Wenn Bedingung dann Wert1 sonst Wert2".
    - MITTELWERT/AVERAGE → z.B. "(Var1 + Var2 + ...) / n" mit sprechenden Namen.
-   - SUMIFS(Summenbereich, Kriterienbereich, Kriterium): Summenbereich (Tabellenspalte) → Variable; Kriteriumszelle (z.B. A9) → weitere Variable. Formel z.B. "Summe(X, gefiltert nach Y) / Anzahl(gefiltert nach Y)" – beide Variablennamen in variablen[].
-   - COUNTIFS: (a) Jede Tabellenspalte (Kriterienbereich, z.B. MAJahr1[Angestelltenverhältnis]) = Variable (Spalte_JahrN). (b) Jede Zellreferenz (Kriterium, z.B. 'INTERN BEZÜGE'!D3) = Variable (Blatt_Zelle). SUM(COUNTIFS(...), COUNTIFS(...)): jede der drei Tabellen hat eigene Spalten-Variablen (Angestelltenverhältnis_Jahr1, Monate_im_Betrieb_Jahr1, ...). Kriterienzellen (D3, E5) = je eine Variable (Intern_Bezüge_D3, Intern_Bezüge_E5).
+   - SUMIFS(Summenbereich, Kriterienbereich, Kriterium): Summenbereich (Tabellenspalte) → Variable; Kriteriumszelle (z.B. A9) → weitere Variable mit kriterienbereich (Spaltenname). Formel z.B. "Summe(X, gefiltert nach Y) / Anzahl(gefiltert nach Y)" – beide Variablennamen in variablen[].
+   - COUNTIFS: Nur die Kriterienzellen (Zellreferenzen, z.B. D3, E5) = Variablen. Tabellenspalten (Kriterienbereiche wie MAJahr1[Angestelltenverhältnis]) sind KEINE Variablen – sie dienen nur der Filterlogik. Pro Kriterienzelle: Variable mit zellenidentifikator, tabellenblatt_referenz (bei Cross-Sheet), kriterienbereich (Spaltenname, auf den das Kriterium angewendet wird), quelle_typ: "zelle", vergleichsoperator: "=". operation: "count_filter" setzen; operation_parameter: {"tabellen": ["MAJahr1", "MAJahr2", ...], "aggregation": "summe"}.
    - INDEX(Tabelle, Zeile, Spalte): Tabelle → Variable; MATCH-Kriterienzellen (H9, I4) je Variable. Formel z.B. "Wert aus Lohn_Tabelle an Zeile(Ausbildungsstand) und Spalte(Spaltenkopf)". Variablenreihenfolge zwingend: (1) Tabelle, (2) Zeilenkriterium (H9), (3) Spaltenkriterium (I4). operation: "index_lookup" setzen.
    - MATCH(Suchwert, Bereich, 0): Suchwert = Variable; Bereich dient nur der Lookup-Logik, keine zusätzliche Variable.
    - Generisch: jede Funktion durch lesbaren Pseudocode; jede Wertquelle (Zelle, Tabellenspalte, Tabelle) = eine Variable.
@@ -42,10 +42,14 @@ AUSGABE (JSON-Schema):
       "name": "Variablenname (exakt wie im formel-String)",
       "ist_primitive": true,
       "zellenidentifikator": "bei Zellreferenzen: A1, D7, G19; bei Tabellenspalten weglassen",
-      "tabellenblatt_referenz": "nur bei Zellreferenz aus anderem Blatt (z.B. '1. Lohn AW'); sonst weglassen"
+      "tabellenblatt_referenz": "nur bei Zellreferenz aus anderem Blatt (z.B. '1. Lohn AW'); sonst weglassen",
+      "quelle_typ": "optional: 'zelle' | 'tabellenspalte' | 'berechnungsvorschrift'",
+      "kriterienbereich": "optional: bei COUNTIFS/SUMIFS Spaltenname, auf den das Kriterium angewendet wird",
+      "vergleichsoperator": "optional: '=' (Default), '>', '<', etc."
     }
   ],
-  "operation": "optional: nur bei INDEX/MATCH 'index_lookup'; sonst weglassen (Default: Ausdruck)",
+  "operation": "optional: 'index_lookup' (INDEX/MATCH) | 'count_filter' (COUNTIFS); sonst weglassen (Default: Ausdruck)",
+  "operation_parameter": "optional: bei count_filter z.B. {\"tabellen\": [\"MAJahr1\", \"MAJahr2\"], \"aggregation\": \"summe\"}",
   "metadaten": {
     "kategorie": "z.B. Gehalt, Kosten, Umsatz, Personal",
     "symbol": "Kürzel (z.B. MNG, GK, LWT)",
@@ -61,5 +65,7 @@ JSON-Keys (Bedeutung):
 - variablen[].ist_primitive: Immer true (referenz_berechnungsvorschrift_id vom System später befüllt).
 - variablen[].zellenidentifikator: Excel-Zelle ohne $ (D7, A9). Für Matching mit vorhandenen BVs – nur bei Zellreferenzen.
 - variablen[].tabellenblatt_referenz: Blattname bei Cross-Sheet; sonst weglassen. Matching braucht dies, um BVs in fremden Blättern zu finden.
-- operation: Nur bei INDEX/MATCH; sonst weglassen. Bei "index_lookup" Variablenreihenfolge: [Tabelle, Zeilenkriterium, Spaltenkriterium].
+- operation: Nur bei INDEX/MATCH ("index_lookup") oder COUNTIFS ("count_filter"); sonst weglassen. Bei "index_lookup" Variablenreihenfolge: [Tabelle, Zeilenkriterium, Spaltenkriterium].
+- operation_parameter: Bei count_filter: tabellen (Liste), aggregation ("summe").
+- variablen[].quelle_typ, kriterienbereich, vergleichsoperator: Optional; bei COUNTIFS/SUMIFS-Kriterienzellen setzen.
 - metadaten: Alle vier Felder (kategorie, symbol, datentyp, einheit) aus Kontext ableiten. Kategorie vom Nutzer übernehmen, falls angegeben.

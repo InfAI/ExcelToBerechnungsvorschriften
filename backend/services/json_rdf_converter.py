@@ -2,6 +2,7 @@
 JSON-zu-RDF Konverter (Middleware)
 Konvertiert Berechnungsvorschriften von JSON zu RDF-Triples
 """
+import json
 import logging
 from datetime import datetime
 from rdflib import Graph, URIRef, Literal, Namespace
@@ -66,6 +67,9 @@ class JSONRDFConverter:
         # Operation (optional) – bestimmt die Auswertungsregel bei Berechnung mit echten Werten
         if getattr(bv, "operation", None):
             graph.add((bv_uri, property_uri("hatOperation"), Literal(bv.operation)))
+        # operation_parameter (optional) – z.B. count_filter: tabellen, aggregation, tabellen_bereiche
+        if getattr(bv, "operation_parameter", None) and isinstance(bv.operation_parameter, dict):
+            graph.add((bv_uri, property_uri("hatOperationParameter"), Literal(json.dumps(bv.operation_parameter))))
         
         # Excel-Identifikator (optional) – stammt aus Excel, nicht aus der Datenbank
         if getattr(bv, "excel_identifikator", None) and bv.excel_identifikator:
@@ -124,7 +128,19 @@ class JSONRDFConverter:
             # Tabellenblatt der referenzierten Zelle bei Cross-Sheet-Referenzen (z.B. '1. Lohn AW'.G19)
             if getattr(var, "tabellenblatt_referenz", None) and var.tabellenblatt_referenz:
                 graph.add((var_uri, property_uri("referenziertTabellenblatt"), Literal(var.tabellenblatt_referenz)))
-            
+            # Erweiterte Variable-Infos (optional, Fallback wenn leer)
+            if getattr(var, "quelle_typ", None):
+                graph.add((var_uri, property_uri("hatQuelleTyp"), Literal(var.quelle_typ)))
+            if getattr(var, "kriterienbereich", None):
+                graph.add((var_uri, property_uri("hatKriterienbereich"), Literal(var.kriterienbereich)))
+            if getattr(var, "vergleichsoperator", None):
+                graph.add((var_uri, property_uri("hatVergleichsoperator"), Literal(var.vergleichsoperator)))
+            if getattr(var, "tabellenreferenz", None):
+                graph.add((var_uri, property_uri("hatTabellenreferenz"), Literal(var.tabellenreferenz)))
+            if getattr(var, "kriterienbereich_blatt", None):
+                graph.add((var_uri, property_uri("hatKriterienbereichBlatt"), Literal(var.kriterienbereich_blatt)))
+            if getattr(var, "kriterienbereich_bereich", None):
+                graph.add((var_uri, property_uri("hatKriterienbereichBereich"), Literal(var.kriterienbereich_bereich)))
             # Referenz zu anderer Berechnungsvorschrift (falls vorhanden)
             if var.referenz_berechnungsvorschrift_id and not var.ist_primitive:
                 logger.debug(f"Variable '{var.name}' referenziert Berechnungsvorschrift {var.referenz_berechnungsvorschrift_id}")
@@ -166,6 +182,14 @@ class JSONRDFConverter:
         # Operation (optional) – Auswertungstyp für Berechnung mit echten Werten
         operation_val = graph.value(bv_uri, property_uri("hatOperation"))
         operation = str(operation_val) if operation_val else None
+        # operation_parameter (optional) – JSON-Dict
+        operation_parameter = None
+        op_param_val = graph.value(bv_uri, property_uri("hatOperationParameter"))
+        if op_param_val:
+            try:
+                operation_parameter = json.loads(str(op_param_val))
+            except json.JSONDecodeError:
+                pass
         
         # Excel-Identifikator (optional) – stammt aus Excel, nicht aus der Datenbank
         excel_identifikator_val = graph.value(bv_uri, property_uri("hatExcelIdentifikator"))
@@ -248,13 +272,25 @@ class JSONRDFConverter:
             # Tabellenblatt bei Cross-Sheet-Referenzen (z.B. '1. Lohn AW'.G19)
             tabellenblatt_ref_val = graph.value(var_uri, property_uri("referenziertTabellenblatt"))
             tabellenblatt_referenz = str(tabellenblatt_ref_val) if tabellenblatt_ref_val else None
-            
+            # Erweiterte Variable-Infos (optional)
+            quelle_typ = str(v) if (v := graph.value(var_uri, property_uri("hatQuelleTyp"))) else None
+            kriterienbereich = str(v) if (v := graph.value(var_uri, property_uri("hatKriterienbereich"))) else None
+            vergleichsoperator = str(v) if (v := graph.value(var_uri, property_uri("hatVergleichsoperator"))) else None
+            tabellenreferenz = str(v) if (v := graph.value(var_uri, property_uri("hatTabellenreferenz"))) else None
+            kriterienbereich_blatt = str(v) if (v := graph.value(var_uri, property_uri("hatKriterienbereichBlatt"))) else None
+            kriterienbereich_bereich = str(v) if (v := graph.value(var_uri, property_uri("hatKriterienbereichBereich"))) else None
             variablen.append(Variable(
                 name=var_name,
                 referenz_berechnungsvorschrift_id=ref_id,
                 ist_primitive=ist_primitive,
                 zellenidentifikator=zellenidentifikator,
-                tabellenblatt_referenz=tabellenblatt_referenz
+                tabellenblatt_referenz=tabellenblatt_referenz,
+                quelle_typ=quelle_typ,
+                kriterienbereich=kriterienbereich,
+                vergleichsoperator=vergleichsoperator,
+                tabellenreferenz=tabellenreferenz,
+                kriterienbereich_blatt=kriterienbereich_blatt,
+                kriterienbereich_bereich=kriterienbereich_bereich,
             ))
         
         # Berechnungsvorschrift aus extrahierten Daten zusammenbauen
@@ -270,6 +306,7 @@ class JSONRDFConverter:
             erstellt_am=erstellt_am,
             geaendert_am=geaendert_am,
             operation=operation,
+            operation_parameter=operation_parameter,
             excel_identifikator=excel_identifikator,
             wichtig=wichtig
         )

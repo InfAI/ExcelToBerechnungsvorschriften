@@ -41,6 +41,9 @@ Dieses Dokument beschreibt (1) das Vorgehen beim Rechnen mit echten Werten und (
 - **Mit `operation = "index_lookup"`:**  
   **Eine** Funktion aufrufen: z. B. `lookup(Tabelle, Zeilenkriterium, Spaltenkriterium)` – Wert aus der Tabelle an der Zeile, wo die Zeilen-Spalte = Zeilenkriterium ist, und der Spalte, deren Header = Spaltenkriterium ist. Die drei Variablenwerte kommen aus Schritt 3; die **Rolle** jeder Variable (Tabelle vs. Zeilenkey vs. Spaltenkey) ist durch die Reihenfolge bzw. Konvention festgelegt (siehe Teil 3).
 
+- **Mit `operation = "count_filter"`:**  
+  COUNTIFS/SUM(COUNTIFS)-Logik: **Variablen** sind nur die Kriterienzellen (z. B. Kriterium_Angestelltenverhältnis, Kriterium_Monate). Für jede Tabelle in `operation_parameter.tabellen` zähle Zeilen, wo für alle Kriterien `Spalte[kriterienbereich_i] = Wert(Variable_i)` gilt. `Variable.kriterienbereich` definiert, welche Spalte pro Variable gefiltert wird. Bei `aggregation = "summe"` werden die Einzelzähler addiert (entspricht SUM(COUNTIFS(...))). Siehe Teil 4.
+
 **Schritt 5 – Ergebnis speichern und weiterverwenden**
 
 - Das Ergebnis dieser BV wird **pro BV-ID** gespeichert (z. B. Dictionary „BV-ID → Wert“).
@@ -73,7 +76,7 @@ operation: Optional[str] = Field(
 )
 ```
 
-- **Werte:** `"ausdruck"` | `"index_lookup"` (später erweiterbar, z. B. `"sumif_lookup"`).
+- **Werte:** `"ausdruck"` | `"index_lookup"` | `"count_filter"` (COUNTIFS/SUM(COUNTIFS)).
 - **Default:** `None` oder `"ausdruck"` – wenn fehlend, gilt Ausdruck-Auswertung.
 - **Stellung:** Gleichrangig mit `name`, `formel`, `variablen`, `metadaten`; die BV beschreibt weiterhin *was* berechnet wird, `operation` sagt *wie* ausgewertet wird.
 
@@ -162,13 +165,52 @@ So ist die Semantik „Zeile = H9, Spalte = I4“ eindeutig an die Variablen gek
 
 ---
 
+## Teil 4: operation = "count_filter" (COUNTIFS / SUM(COUNTIFS))
+
+### 4.1 Variablen
+
+Nur die **Kriterienzellen** (Zellreferenzen) sind Variablen – z. B. D3, E5 aus `'INTERN BEZÜGE'!D3` und `'INTERN BEZÜGE'!E5`. Tabellenspalten (Kriterienbereiche wie MAJahr1[Angestelltenverhältnis]) sind **keine** Variablen; sie dienen nur der Filterlogik.
+
+Jede Variable hat optional:
+- `kriterienbereich`: Spaltenname, auf den das Kriterium angewendet wird (z. B. "Angestelltenverhältnis")
+- `vergleichsoperator`: "=" (Default), ">", "<", etc.
+- `kriterienbereich_blatt`, `kriterienbereich_bereich`: Aufgelöste Excel-Bereiche (falls aus Referenz-Index verfügbar)
+
+### 4.2 operation_parameter
+
+```json
+{
+  "tabellen": ["MAJahr1", "MAJahr2", "MAJahr3"],
+  "aggregation": "summe",
+  "tabellen_bereiche": {
+    "MAJahr1": {"blatt": "2. Arbeitszeit AW", "bereich": "B5:G20"},
+    "MAJahr2": {"blatt": "2. Arbeitszeit AW", "bereich": "B25:G40"}
+  }
+}
+```
+
+- `tabellen`: Liste der Tabellen, die gezählt werden
+- `aggregation`: "summe" (SUM der Einzelzählungen)
+- `tabellen_bereiche`: Optional – aufgelöste Blatt+Bereich pro Tabelle (aus Excel-Referenz-Index)
+
+### 4.3 Auswertung
+
+Für jede Tabelle in `operation_parameter.tabellen`:
+1. Lade die Tabellendaten (aus `tabellen_bereiche` oder externer Wertequelle)
+2. Filtere Zeilen: Für jede Variable muss `Spalte[kriterienbereich] = Wert(Variable)` gelten (bzw. vergleichsoperator)
+3. Zähle die gefilterten Zeilen
+
+Summiere die Zähler aller Tabellen (bei `aggregation = "summe"`).
+
+---
+
 ## Kurzfassung
 
 | Bereich        | Platzierung von `operation` |
 |----------------|-----------------------------|
-| **JSON-Modell**| `Berechnungsvorschrift.operation: Optional[str]` (z. B. `"ausdruck"` \| `"index_lookup"`). |
-| **RDF**        | Optionales Triple `bv_uri bv:hatOperation "index_lookup"`; beim Lesen in `operation` übernehmen. |
+| **JSON-Modell**| `Berechnungsvorschrift.operation: Optional[str]` (z. B. `"ausdruck"` \| `"index_lookup"` \| `"count_filter"`). |
+| **RDF**        | Optionales Triple `bv_uri bv:hatOperation "..."`; `hatOperationParameter` (JSON) für count_filter. |
 | **API**        | Keine Änderung der Routen nötig; Feld wird mit dem bestehenden Response/Body-Modell mitgeführt. |
-| **Semantik**   | Bei `operation = "index_lookup"`: Variable[0] = Tabelle, Variable[1] = Zeilenkriterium (H9), Variable[2] = Spaltenkriterium (I4). Im Prompt/Beispiel Reihenfolge festhalten. |
+| **Semantik**   | Bei `index_lookup`: Variable[0] = Tabelle, [1] = Zeilenkriterium, [2] = Spaltenkriterium. Bei `count_filter`: Nur Kriterienzellen = Variablen; `Variable.kriterienbereich` = gefilterte Spalte. |
 
 Damit ist das Vorgehen für die Auswertung mit echten Werten dokumentiert und die Einbindung von `operation` sowie die Anbindung von „Zeile = H9, Spalte = I4“ an die Variablen konkret beschrieben.

@@ -32,7 +32,8 @@ from openpyxl.utils import get_column_letter
 from openpyxl.utils.cell import range_boundaries, column_index_from_string
 from openpyxl.worksheet.formula import ArrayFormula
 
-from utils.formel_utils import formel_excel_normalisieren
+from utils.formel_utils import formel_excel_normalisieren, tabellenspalten_aus_formel
+from utils.excel_referenz_index import lade_referenz_index
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -243,6 +244,11 @@ def zelleneingaben_aus_excel(config_path: str, excel_path: str) -> list:
     # Optional: Formeln in Beschreibungen durch lesbare Texte ersetzen
     formel_ersetzung = config.get("formel_ersetzung") or {}
 
+    # Referenz-Index vorab laden: Tabellen und benannte Bereiche aus Excel auflösen.
+    # Ermöglicht bei Formeln mit MAJahr1[Spalte] direkt Blatt+Bereich einzutragen.
+    # Fallback: Wenn Auflösung fehlschlägt, bleibt referenz_bereiche leer.
+    referenz_index = lade_referenz_index(wb)
+
     # Konfiguration in Triplets (tabellenidentifikator, blatt_name, tabelle) auflösen
     # Neue Hierarchie: tabellenidentifikatoren -> tabellenblaetter -> tabellen
     # Fallback: alte Struktur tabellenblaetter -> tabellen (id pro Tabelle)
@@ -317,6 +323,23 @@ def zelleneingaben_aus_excel(config_path: str, excel_path: str) -> list:
                     "formel": formel,
                     "wichtig": wichtig,
                 }
+                # Referenz-Index: Tabellenspalten aus Formel auflösen (MAJahr1[Spalte] -> Blatt+Bereich).
+                # Fallback: Keine Anreicherung wenn Lookup fehlschlägt.
+                tabellenspalten = tabellenspalten_aus_formel(formel)
+                if tabellenspalten and referenz_index:
+                    referenz_bereiche = []
+                    for ts in tabellenspalten:
+                        key = (ts["tabelle"], ts["spalte"])
+                        resolved = referenz_index.get(key)
+                        if resolved:
+                            referenz_bereiche.append({
+                                "tabelle": ts["tabelle"],
+                                "spalte": ts["spalte"],
+                                "blatt": resolved["blatt"],
+                                "bereich": resolved["bereich"],
+                            })
+                    if referenz_bereiche:
+                        ze["referenz_bereiche"] = referenz_bereiche
                 zelleneingaben.append(ze)
                 logger.debug(f"Zelleneingabe: {zellen_ref} ({t_id}, {blatt_name})")
 

@@ -172,7 +172,7 @@ Erklärung: G19 liegt im Blatt "1. Lohn AW", die Formel in "Übersicht". tabelle
 
 ---
 
-BEISPIEL 8 – SUM(COUNTIFS(...)) mit Cross-Sheet-Kriterien und Tabellenspalten
+BEISPIEL 8 – SUM(COUNTIFS(...)) mit Cross-Sheet-Kriterien (2 Variablen)
 
 EINGABE:
 Tabellenidentifikator: Soziales
@@ -184,18 +184,14 @@ Formel: =SUM(COUNTIFS(MAJahr1[Angestelltenverhältnis],'INTERN BEZÜGE'!$D$3,MAJ
 JSON:
 {
   "name": "N/A",
-  "formel": "Anzahl(Angestelltenverhältnis_Jahr1=Intern_Bezüge_D3, Monate_im_Betrieb_Jahr1=Intern_Bezüge_E5) + Anzahl(Angestelltenverhältnis_Jahr2=Intern_Bezüge_D3, Monate_im_Betrieb_Jahr2=Intern_Bezüge_E5) + Anzahl(Angestelltenverhältnis_Jahr3=Intern_Bezüge_D3, Monate_im_Betrieb_Jahr3=Intern_Bezüge_E5)",
+  "formel": "Anzahl(MAJahr1, Angestelltenverhältnis=Kriterium_Angestelltenverhältnis, Monate_im_Betrieb=Kriterium_Monate) + Anzahl(MAJahr2, Angestelltenverhältnis=Kriterium_Angestelltenverhältnis, Monate_im_Betrieb=Kriterium_Monate) + Anzahl(MAJahr3, Angestelltenverhältnis=Kriterium_Angestelltenverhältnis, Monate_im_Betrieb=Kriterium_Monate)",
+  "operation": "count_filter",
+  "operation_parameter": {"tabellen": ["MAJahr1", "MAJahr2", "MAJahr3"], "aggregation": "summe"},
   "variablen": [
-    {"name": "Intern_Bezüge_D3", "ist_primitive": true, "zellenidentifikator": "D3", "tabellenblatt_referenz": "INTERN BEZÜGE"},
-    {"name": "Intern_Bezüge_E5", "ist_primitive": true, "zellenidentifikator": "E5", "tabellenblatt_referenz": "INTERN BEZÜGE"},
-    {"name": "Angestelltenverhältnis_Jahr1", "ist_primitive": true},
-    {"name": "Monate_im_Betrieb_Jahr1", "ist_primitive": true},
-    {"name": "Angestelltenverhältnis_Jahr2", "ist_primitive": true},
-    {"name": "Monate_im_Betrieb_Jahr2", "ist_primitive": true},
-    {"name": "Angestelltenverhältnis_Jahr3", "ist_primitive": true},
-    {"name": "Monate_im_Betrieb_Jahr3", "ist_primitive": true}
+    {"name": "Kriterium_Angestelltenverhältnis", "ist_primitive": true, "zellenidentifikator": "D3", "tabellenblatt_referenz": "INTERN BEZÜGE", "quelle_typ": "zelle", "kriterienbereich": "Angestelltenverhältnis", "vergleichsoperator": "="},
+    {"name": "Kriterium_Monate", "ist_primitive": true, "zellenidentifikator": "E5", "tabellenblatt_referenz": "INTERN BEZÜGE", "quelle_typ": "zelle", "kriterienbereich": "Wie viele Monate des Jahres im Betrieb angestellt?", "vergleichsoperator": "="}
   ],
   "metadaten": {"kategorie": "Personal", "symbol": "AMV", "datentyp": "integer", "einheit": "Stk"}
 }
 
-Erklärung: Zellreferenzen D3, E5 (INTERN BEZÜGE) → Intern_Bezüge_D3, Intern_Bezüge_E5. Jede Tabellenspalte (MAJahr1[Angestelltenverhältnis], MAJahr1[Wie viele Monate...], ...) = eigene Variable mit Spalte_JahrN. Insgesamt 8 Variablen.
+Erklärung: Nur Kriterienzellen D3, E5 (INTERN BEZÜGE) = Variablen. Tabellenspalten (MAJahr1[Angestelltenverhältnis], MAJahr1[Wie viele Monate...], ...) sind KEINE Variablen – sie dienen nur der Filterlogik. kriterienbereich = Spaltenname, auf den das Kriterium angewendet wird. operation: "count_filter" mit operation_parameter: tabellen, aggregation.

@@ -43,6 +43,31 @@ class Variable(BaseModel):
         description="Tabellenblatt der referenzierten Zelle, wenn diese in anderem Blatt liegt "
                     "(z.B. '1. Lohn AW' bei =$'1. Lohn AW'.G19). Nur bei fremden Blättern setzen."
     )
+    # Erweiterte Variable-Infos für Auflösung und Auswertung (optional, Fallback wenn leer)
+    quelle_typ: Optional[str] = Field(
+        None,
+        description="Herkunft des Werts: 'zelle' | 'tabellenspalte' | 'berechnungsvorschrift'"
+    )
+    kriterienbereich: Optional[str] = Field(
+        None,
+        description="Bei COUNTIFS/SUMIFS: Spaltenname, auf den das Kriterium angewendet wird (z.B. 'Angestelltenverhältnis')"
+    )
+    vergleichsoperator: Optional[str] = Field(
+        None,
+        description="Vergleichsoperator: '=' (Default), '>', '<', etc."
+    )
+    tabellenreferenz: Optional[str] = Field(
+        None,
+        description="Bei Tabellenspalten: Tabellenname (z.B. 'MAJahr1')"
+    )
+    kriterienbereich_blatt: Optional[str] = Field(
+        None,
+        description="Blatt des Kriterienbereichs – nur wenn aus Excel aufgelöst (Fallback: leer)"
+    )
+    kriterienbereich_bereich: Optional[str] = Field(
+        None,
+        description="Zellbereich der Spalte (z.B. 'C6:C20') – nur wenn aus Excel aufgelöst (Fallback: leer)"
+    )
 
 
 class Metadaten(BaseModel):
@@ -86,7 +111,12 @@ class Berechnungsvorschrift(BaseModel):
     # Optional: Auswertungstyp für spätere Berechnung mit echten Werten
     operation: Optional[str] = Field(
         None,
-        description="Auswertungstyp: 'ausdruck' (Default) = Formel als Ausdruck; 'index_lookup' = 2D-Tabellenlookup (Tabelle, Zeilenkey, Spaltenkey)"
+        description="Auswertungstyp: 'ausdruck' (Default) | 'index_lookup' | 'count_filter' (COUNTIFS/SUM(COUNTIFS))"
+    )
+    # Optional: Parameter für operation (z.B. count_filter: tabellen, aggregation, tabellen_bereiche)
+    operation_parameter: Optional[dict] = Field(
+        None,
+        description="Parameter für operation: z.B. {'tabellen': [...], 'aggregation': 'summe', 'tabellen_bereiche': {...}}"
     )
     # Excel-Identifikator der Ausgabezelle (z.B. _1_Wert) – stammt aus Excel, nicht aus der Datenbank.
     # Unterscheidet sich von quelle.zellenidentifikator (Excel-Zellreferenz A1, D7) und von id (Datenbank-UUID).
