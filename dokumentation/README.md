@@ -17,6 +17,7 @@ Diese Dokumentation beschreibt **fachlich und konzeptionell**, wie Berechnungsvo
 | [05 Zusammenführung](05_zusammenfuehrung.md) | Konzept zum Zusammenführen mehrerer BVs, potenzielle Probleme |
 | [06 Technische Handhabung](06_technische_handhabung.md) | Fallstricke, Besonderheiten, Matching-Prioritäten, Identifikatoren |
 | [07 Konzeptioneller Rahmen](07_konzeptioneller_rahmen.md) | Etablierte Konzepte (DAG, DSL, MDM, Provenance, etc.) |
+| [08 Warum nicht alle Formeln](08_warum_nicht_alle_formeln.md) | Begründung für selektive Überführung statt 1:1-Abbildung |
 
 ## Diagramme
 
