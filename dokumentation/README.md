@@ -4,6 +4,8 @@
 
 Diese Dokumentation beschreibt **fachlich und konzeptionell**, wie Berechnungsvorschriften versioniert und gewartet werden können. Sie ist eigenständig und verzichtet bewusst auf technische Aspekte wie Datenhaltung oder Implementierungsdetails.
 
+**Zwei Dimensionen:** Berechnungsvorschriften existieren in verschiedenen **Versionen** (zeitlich) und können **regionale Ausprägungen** haben (räumlich, bezogen auf einen Regionalitätsindikator). Versionen und regionale Ausprägungen sind untereinander verlinkt. Siehe [01 Definition](01_definition.md), Abschnitt „Regionale Ausprägungen".
+
 **Zielgruppe:** Fachverantwortliche, die Berechnungsvorschriften in der Anwendung IAK Farmaxis im Webbrowser pflegen – mit Fokus auf Wartbarkeit für Nichtinformatiker. IAK Farmaxis soll künftig der zentrale Pflegeort für Berechnungsvorschriften sein (im Sinne von [Master Data Management](07_konzeptioneller_rahmen.md)).
 
 ## Inhaltsverzeichnis

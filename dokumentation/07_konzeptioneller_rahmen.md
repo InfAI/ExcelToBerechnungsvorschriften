@@ -18,6 +18,7 @@ Dieses Kapitel bündelt **etablierte Konzepte** aus Softwareentwicklung, Semanti
 | **MDM** | Zentrale Pflege von Stammdaten | IAK Farmaxis als Pflegeort für BVs | [03](03_wartung.md) |
 | **Business Rules Engine** | Definition und Ausführung von Regeln | BVs als Geschäftsregeln | [01](01_definition.md) |
 | **Data Lineage** | Nachverfolgbarkeit der Datenherkunft | Quelle, Versionierung, Audit | [02](02_versionierungskonzept.md), [06](06_technische_handhabung.md) |
+| **Regionale Ausprägungen** | Mehrere Manifestationen pro logischer BV | Version + Region, Verlinkung Basis/Schwester | [01](01_definition.md), [02](02_versionierungskonzept.md) |
 
 ---
 
@@ -62,6 +63,10 @@ BVs beschreiben Berechnungsregeln – wenn-dann-Logik, Formeln; sie sind ausfüh
 ### Data Lineage
 
 Nachvollziehen, woher eine BV stammt (Excel-Zelle), wer sie geändert hat, welche BVs sie verwendet – das ist [Data Lineage](https://en.wikipedia.org/wiki/Data_lineage) (Datenherkunft). Wichtig für Compliance und Audit.
+
+### Regionale Ausprägungen
+
+Berechnungsvorschriften können in **verschiedenen Versionen** (zeitlich) und **verschiedenen Regionen** (räumlich) existieren. Eine logische Berechnungsvorschrift (z.B. „Anteil regionaler Rohstoffe") hat eine überregionale **Basis-BV** und optional **regionale Ausprägungen** (z.B. für Bayern, Baden-Württemberg). Alle Ausprägungen sind untereinander verlinkt (`referenz_basis_berechnungsvorschrift_id`, `referenz_schwester_auspraegung_id`). Dies ermöglicht regionalspezifische Anpassungen bei gleichzeitiger Nachvollziehbarkeit der Verwandtschaft. Siehe [01 Definition](01_definition.md), Abschnitt „Regionale Ausprägungen".
 
 ---
 

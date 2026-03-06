@@ -47,6 +47,8 @@ In IAK Farmaxis können Berechnungsvorschriften:
 | **Bearbeitung** | BV in IAK Farmaxis öffnen → Änderungen vornehmen → Speichern (erzeugt neue Version) |
 | **Historie anzeigen** | Versionsverlauf einer BV einsehen |
 | **Variablen-Verlinkung ändern** | Verlinkung aufheben (Variable wird primitiv) oder manuell verlinken (bei mehreren Treffern) |
+| **Regionale Ausprägung anlegen** | Aus bestehender BV (Basis oder andere Region) eine neue regionale Ausprägung erstellen → Regionalitätsindikator setzen → Verlinkung zu Basis/Schwester-Ausprägungen herstellen. Siehe [01 Definition](01_definition.md). |
+| **Verwandte Ausprägungen anzeigen** | Basis-BV, Schwester-Ausprägungen (andere Regionen) einsehen und vergleichen |
 
 ## Benutzeraktionen
 
@@ -63,5 +65,6 @@ Die Frage „Wer darf was?“ sollte organisationsspezifisch geklärt werden:
 - Wer darf bestehende BVs in IAK Farmaxis bearbeiten?
 - Wer darf Verlinkungen ändern?
 - Wer darf die Historie einsehen?
+- Wer darf regionale Ausprägungen anlegen oder ändern?
 
 Diese Rollen sind fachlich zu definieren und in den Anwendungen abzubilden.

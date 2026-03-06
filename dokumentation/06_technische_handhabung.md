@@ -104,3 +104,21 @@ Nach Anlegen einer neuen BV können andere BVs eine Variable haben, die nun auf 
 
 - Das Laden aller BVs und das Abrufen von „verwendet in“ / „verwendet“ kann bei vielen BVs aufwändig werden.
 - Theoretische Überlegung: Batch-Loading, Caching oder indizierte Abfragen statt N+1-Ladevorgänge.
+
+---
+
+## 4. Regionale Ausprägungen
+
+### Regionalitätsindikator und Verlinkung
+
+| Aspekt | Theoretische Überlegung | Konsequenz für Anwendungen |
+|--------|-------------------------|----------------------------|
+| **Eindeutigkeit pro Region** | Eine logische BV kann pro Region nur eine aktive Ausprägung haben (pro Version). | Bei Erstellung einer regionalen Ausprägung prüfen: Existiert bereits eine Ausprägung für diesen Regionalitätsindikator? |
+| **Referenz auf Basis-BV** | Regionale Ausprägungen verweisen auf eine überregionale Basis-BV. | `referenz_basis_berechnungsvorschrift_id` muss auf eine BV ohne Regionalitätsindikator zeigen – oder leer sein, wenn es die Basis-BV selbst ist. |
+| **Schwester-Ausprägungen** | Ausprägungen derselben logischen BV sind untereinander verlinkt. | Liste „Verwandte Ausprägungen" ermöglicht Navigation und Vergleich; bei Änderung der Basis ggf. Benachrichtigung oder Abgleich. |
+| **Auswertung mit Region** | Bei der Auswertung muss die passende regionale Ausprägung gewählt werden. | Der Auswertungskontext (z.B. „für welche Region?") bestimmt, welche BV-Version verwendet wird. |
+
+### Matching bei regionalen Ausprägungen
+
+- Beim automatischen Verlinken von Variablen: Soll die Variable auf die **Basis-BV** oder auf eine **regionale Ausprägung** verweisen?
+- **Empfehlung:** Wenn der Kontext eine Region hat, Matching priorisiert innerhalb derselben Region; sonst auf die Basis-BV. Dies muss konfigurierbar oder dokumentiert sein.

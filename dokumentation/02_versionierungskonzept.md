@@ -4,6 +4,8 @@
 
 Die Versionierung von Berechnungsvorschriften ermöglicht Nachvollziehbarkeit und Rückverfolgbarkeit von Änderungen. Die folgenden Optionen beschreiben **unterschiedliche fachliche Strategien** – jede schließt die andere aus. Ohne technische Umsetzungsdetails.
 
+**Zwei Dimensionen:** Berechnungsvorschriften können in zwei Dimensionen variieren: **Version** (zeitlich) und **Region** (räumlich). Siehe [01 Definition](01_definition.md), Abschnitt „Regionale Ausprägungen".
+
 ## Account-Referenz bei Änderungen
 
 Unabhängig von der gewählten Versionierungsstrategie sollte jede Version einen Verweis auf den **Account** (Benutzer) enthalten, der die Änderung herbeigeführt hat:
@@ -49,6 +51,8 @@ Damit ist jeder Versionsstand einer Person zuordenbar – für Audit, Nachverfol
 
 Die aktuelle Implementierung in ExcelToBerechnungsvorschriften unterstützt **nur Option A (Minimal)** – keine Version-Historie. Alte Versionen werden beim Speichern überschrieben und sind nicht abrufbar. Für Anwendungen wie IAK Farmaxis sollten die Optionen B–D bei der Implementierung berücksichtigt werden.
 
+**Regionale Ausprägungen** (Regionalitätsindikator, Verlinkung Basis/Schwester-Ausprägungen) sind **noch nicht implementiert**. Die Dokumentation beschreibt das konzeptionelle Modell für eine spätere Umsetzung. Siehe [01 Definition](01_definition.md), Abschnitt „Regionale Ausprägungen".
+
 ## Empfehlung
 
 **Empfohlen wird Option B: Vollständige Historie mit allen Versionen.**
@@ -64,6 +68,10 @@ Die **gesamte Berechnungsvorschrift** wird versioniert – inklusive:
 - Quelle-Information
 - Verlinkungen zu anderen Berechnungsvorschriften
 - `erstellt_von` / `geaendert_von` (Account-Referenz)
+- Regionalitätsindikator (falls regionale Ausprägung)
+- Verlinkungen zu Basis-BV und Schwester-Ausprägungen (siehe [01 Definition](01_definition.md))
+
+**Hinweis:** Jede regionale Ausprägung hat ihren eigenen Versionsverlauf. Die Version einer BV für „Bayern" ist unabhängig von der Version derselben logischen BV für „Baden-Württemberg".
 
 ## Lebenszyklus
 

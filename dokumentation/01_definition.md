@@ -14,6 +14,7 @@ Sie besteht aus:
 | **Metadaten** | Kategorie, Symbol, Datentyp, Einheit |
 | **Quelle** | Optionale Referenz zur ursprünglichen Excel-Zelle (für Matching) |
 | **Version** | Versionsnummer (wird bei Änderung erhöht) |
+| **Regionalitätsindikator** | Optionale Zuordnung zu einer Region – ermöglicht regionale Ausprägungen derselben Berechnungsvorschrift |
 
 ## Variablen
 
@@ -42,6 +43,26 @@ Bei primitiven Variablen ist `referenz_berechnungsvorschrift_id` leer; der Wert 
 
 **Referentielle Integrität:** Das Feld `referenz_berechnungsvorschrift_id` verweist auf eine andere BV. Wenn die referenzierte BV gelöscht wird, entstehen „tote“ Referenzen. Das Konzept der [referentiellen Integrität](https://en.wikipedia.org/wiki/Referential_integrity) fordert, dass Referenzen konsistent behandelt werden (z.B. Löschen nur mit Prüfung oder Kaskadierung). Siehe [06 Technische Handhabung](06_technische_handhabung.md) und [07 Konzeptioneller Rahmen](07_konzeptioneller_rahmen.md).
 
+## Regionale Ausprägungen
+
+*Hinweis: Regionale Ausprägungen sind konzeptionell beschrieben, aber **noch nicht implementiert**. Siehe [02 Versionierungskonzept](02_versionierungskonzept.md), Implementierungshinweis.*
+
+Neben der Versionierung können Berechnungsvorschriften **regionale Ausprägungen** haben. Eine Berechnungsvorschrift kann in verschiedenen Versionen **und** verschiedenen Regionen existieren.
+
+| Begriff | Beschreibung |
+|---------|--------------|
+| **Regionalitätsindikator** | Kennzeichnet die Region, auf die eine Ausprägung einer Berechnungsvorschrift sich bezieht (z.B. Bundesland, Landkreis, EU-Region). |
+| **Ausprägung** | Eine konkrete Manifestation einer Berechnungsvorschrift – gekennzeichnet durch Version und (optional) Regionalitätsindikator. |
+| **Basis-BV** | Eine Berechnungsvorschrift ohne Regionalitätsindikator gilt als überregionale Basis; regionale Ausprägungen können darauf verweisen. |
+
+### Verlinkung zwischen Ausprägungen
+
+- **Versionen** sind zeitlich verlinkt (alte Version → neue Version).
+- **Regionale Ausprägungen** sind räumlich verlinkt: Sie verweisen auf dieselbe logische Berechnungsvorschrift, unterscheiden sich aber durch den Regionalitätsindikator.
+- Eine BV kann ein Feld `referenz_basis_berechnungsvorschrift_id` oder `referenz_schwester_auspraegung_id` haben, um die Verwandtschaft zu anderen Ausprägungen abzubilden.
+
+**Beispiel:** Die Berechnungsvorschrift „Anteil regionaler Rohstoffe" existiert als Basis (überregional) und als Ausprägung für „Bayern", „Baden-Württemberg" etc. – jeweils mit möglicherweise angepassten Formeln oder Parametern. Alle Ausprägungen sind untereinander verlinkt.
+
 **Hinweis:** Es gibt zwei verschiedene Identifikatoren für Matching: `quelle.zellenidentifikator` (Excel-Zelle wie A1, D7) und `excel_identifikator` (Excel-Named-Range wie _1_Wert). Beide können für die Verlinkung relevant sein – je nachdem, ob die Formel auf eine Zelle oder eine Named Range verweist. Siehe [06 Technische Handhabung](06_technische_handhabung.md) für Details.
 
 ![Zwei-Ebenen-Modell: Formel-Syntax](diagramme/formel_syntax.png)
@@ -52,6 +73,10 @@ Für jede Berechnungsvorschrift werden zwei Listen geführt:
 
 - **„Verwendet folgende Berechnungsvorschriften“**: Alle BVs, die im Pseudocode dieser Berechnungsvorschrift vorkommen (anklickbar zur Navigation).
 - **„Wird verwendet in“**: Alle BVs, die diese Berechnungsvorschrift referenzieren.
+
+Bei regionalen Ausprägungen zusätzlich:
+
+- **„Verwandte Ausprägungen“**: Basis-BV (falls vorhanden), Schwester-Ausprägungen (andere Regionen derselben logischen Berechnungsvorschrift) – zur Navigation und zum Vergleich.
 
 ## Formel-Syntax (Pseudocode)
 

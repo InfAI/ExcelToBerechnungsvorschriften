@@ -37,6 +37,7 @@ Mehrere Berechnungsvorschriften werden zu **einer** Berechnungsvorschrift zusamm
 | **Keine zirkulären Abhängigkeiten**            | Die zu zusammenführenden BVs dürfen untereinander keine Zirkularität aufweisen (A→B→C→A)                                               |
 | **Konsistente Metadaten**                      | Kategorie, Datentyp, Einheit sollten kompatibel sein – sonst Warnung                                                                   |
 | **Keine externen Referenzen auf „innere“ BVs** | BVs außerhalb der Menge dürfen nicht auf BVs verweisen, die nur intern verwendet werden (oder die Referenzen müssen umgeleitet werden) |
+| **Gleicher Regionalitätsindikator**            | Bei regionalen Ausprägungen: Nur BVs derselben Region zusammenführen. BVs unterschiedlicher Regionen sind getrennte Ausprägungen. Siehe [01 Definition](01_definition.md). |
 
 
 ### Ablauf (konzeptionell)
